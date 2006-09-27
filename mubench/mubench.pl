@@ -22,11 +22,11 @@ use IO::File;
 
 $cpuspeed = $ARGV[0] || &getcpuspeed();
 
-@opspecs = ();
-while ($l = <STDIN>)
-{
-    chomp $l;
+require "instructions.pl";
 
+@opspecs = ();
+foreach my $l (@instructions)
+{
     my $opspec = lc($l);
     if ($opspec =~ m!^(\w+) xmm, xmm$! ||
         $opspec =~ m!^(\w+) xmm, xmm/imm8$! ||
