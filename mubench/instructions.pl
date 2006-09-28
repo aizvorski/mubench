@@ -20,6 +20,7 @@
 @instructions = 
 (
 
+#############################################################################
 # SSSE3 (aka SSE4, Merom New Instructions)
 'PSIGNB xmm, xmm',
 'PSIGNW xmm, xmm',
@@ -38,6 +39,7 @@
 'PABSW xmm, xmm',
 'PABSD xmm, xmm',
 
+#############################################################################
 # Source: http://www.intel.com/design/pentium4/manuals/index_new.htm
 # and ftp://download.intel.com/design/Pentium4/manuals/24896613.pdf
 
@@ -51,6 +53,10 @@
 'MOVDDUP xmm, xmm',
 'MOVSHDUP xmm, xmm',
 'MOVSLDUP xmm, xmm',
+'LDDQU xmm, xmm',
+#'FISTTP',
+#'MONITOR',
+#'MWAIT',
 
 # SSE2 int128
 'CVTDQ2PS xmm, xmm',
@@ -88,8 +94,10 @@
 'PEXTRW r32, xmm, imm8',
 'PINSRW xmm, r32, imm8',
 'PMADDWD xmm, xmm',
-'PMAX xmm, xmm',
-'PMIN xmm, xmm',
+'PMAXUB xmm, xmm',
+'PMAXSW xmm, xmm',
+'PMINUB xmm, xmm',
+'PMINSW xmm, xmm',
 'PMOVMSKB r32, xmm',
 'PMULHUW xmm, xmm',
 'PMULHW xmm, xmm',
@@ -176,13 +184,14 @@
 'UNPCKLPD xmm, xmm',
 'XORPD xmm, xmm',
 
+#############################################################################
 # SSE single
 'ADDPS xmm, xmm',
 'ADDSS xmm, xmm',
 'ANDNPS xmm, xmm',
 'ANDPS xmm, xmm',
-'#CMPPS xmm, xmm',
-'#CMPSS xmm, xmm',
+'CMPPS xmm, xmm',
+'CMPSS xmm, xmm',
 'COMISS xmm, xmm',
 'CVTPI2PS xmm, mm',
 'CVTPS2PI mm, xmm',
@@ -218,21 +227,24 @@
 'UNPCKHPS xmm, xmm',
 'UNPCKLPS xmm, xmm',
 'XORPS xmm, xmm',
-'FXRSTOR',
-'FXSAVE',
+#'FXRSTOR',
+#'FXSAVE',
 
 # SSE int64
 'PAVGB mm, mm',
 'PAVGW mm, mm',
 'PEXTRW r32, mm, imm8',
 'PINSRW mm, r32, imm8',
-'PMAX mm, mm',
-'PMIN mm, mm',
+'PMAXUB mm, mm',
+'PMAXSW mm, mm',
+'PMINUB mm, mm',
+'PMINSW mm, mm',
 'PMOVMSKB r32, mm',
 'PMULHUW mm, mm',
 'PSADBW mm, mm',
 'PSHUFW mm, mm, imm8',
 
+#############################################################################
 # MMX
 'MOVD mm, r32',
 'MOVD r32, mm',
@@ -281,12 +293,12 @@
 'PUNPCKLWD mm, mm',
 'PUNPCKLDQ mm, mm',
 'PXOR mm, mm',
-'EMMS',
+#'EMMS',
 
+#############################################################################
 # Source: http://www.amd.com/us-en/assets/content_type/white_papers_and_tech_docs/25112.PDF
 
 # 3DNow!
-'FEMMS',
 'PAVGUSB mm, mm',
 'PF2ID mm, mm',
 'PFACC mm, mm',
@@ -306,8 +318,9 @@
 'PFSUBR mm, mm',
 'PI2FD mm, mm',
 'PMULHRW mm, mm',
-'PREFETCH mem8',
-'PREFETCHW mem8',
+#'PREFETCH mem8',
+#'PREFETCHW mem8',
+#'FEMMS',
 
 # 3DNow! Extensions
 'PF2IW mm, mm',
@@ -315,6 +328,266 @@
 'PFPNACC mm, mm',
 'PI2FW mm, mm',
 'PSWAPD mm, mm',
+
+#############################################################################
+# Integer and general-purpose instructions
+# Source: http://docs.sun.com/app/docs/doc/817-5477/6mkuavhri?a=view
+
+# Data Transfer Instructions
+'BSWAP r',
+#'CBW',
+#'CDQ',
+#'CDQE',
+#'CMOVA',
+#'CMOVAE',
+#'CMOVB',
+#'CMOVBE',
+#'CMOVC',
+'CMOVE r, r',
+#'CMOVG',
+#'CMOVGE',
+#'CMOVL',
+#'COMVLE',
+#'CMOVNA',
+#'CMOVNAE',
+#'CMOVNB',
+#'CMOVNBE',
+#'CMOVNC',
+'CMOVNE r, r',
+#'CMOVNG',
+#'CMOVNGE',
+#'CMOVNL',
+#'CMOVNLE',
+#'CMOVNO',
+#'CMOVNP',
+#'CMOVNS',
+#'CMOVNZ',
+#'CMOVO',
+#'CMOVP',
+#'CMOVPE',
+#'CMOVPO',
+#'CMOVS',
+#'CMOVZ',
+'CMPXCHG r, r',
+#'CMPXCHG8B',
+#'CQO',
+#'CQO',
+#'CWD',
+#'CWDE',
+'MOV r, r',
+#'MOVABS',
+'MOVSX r32, r64',
+'MOVZX r32, r64',
+#'POP',
+#'POPA',
+#'POPAD',
+#'PUSH',
+#'PUSHA',
+#'PUSHAD',
+'XADD r, r',
+'XCHG r, r',
+
+# Binary Arithmetic Instructions
+'ADC r, r',
+'ADD r, r',
+'CMP r, r',
+'DEC r',
+'DIV r, r',  # from dx:ax into dx and ax
+'IDIV r, r', # from dx:ax into dx and ax
+'IMUL r, r', # from ax into dx:ax
+'INC r',
+'MUL r, r',  # from ax into dx:ax
+'NEG r, r',
+'SBB r, r',
+'SUB r, r',
+
+# Decimal Arithmetic Instructions
+#'AAA',
+#'AAD',
+#'AAM',
+#'AAS',
+#'DAA',
+#'DAS',
+
+# Logical Instructions
+'AND r, r',
+'NOT r',
+'OR r, r',
+'XOR r, r',
+
+# Shift and Rotate Instructions
+'RCL r, imm8',
+'RCR r, imm8',
+'ROL r, imm8',
+'ROR r, imm8',
+'SAL r, imm8',
+'SAR r, imm8',
+'SHL r, imm8',
+'SHLD r, r, imm8',
+'SHR r, imm8',
+'SHRD r, r, imm8',
+
+# Bit and Byte Instructions
+'BSF r, r',
+'BSR r, r',
+'BT r, r',
+'BTC r, r',
+'BTR r, r',
+'BTS r, r',
+#'SETA',
+#'SETAE',
+#'SETB',
+#'SETBE',
+#'SETC',
+#'SETE',
+#'SETG',
+#'SETGE',
+#'SETL',
+#'SETLE',
+#'SETNA',
+#'SETNAE',
+#'SETNB',
+#'SETNBE',
+#'SETNC',
+#'SETNE',
+#'SETNG',
+#'SETNGE',
+#'SETNL',
+#'SETNLE',
+#'SETNO',
+#'SETNP',
+#'SETNS',
+#'SETNZ',
+#'SETO',
+#'SETP',
+#'SETPE',
+#'SETPO',
+#'SETS',
+#'SETZ',
+'TEST r, r',
+
+# Control Transfer Instructions
+#'BOUND',
+#'CALL',
+#'ENTER',
+#'INT',
+#'INTO',
+#'IRET',
+#'JA',
+#'JAE',
+#'JB',
+#'JBE',
+#'JC',
+#'JCXZ',
+#'JE',
+#'JECXZ',
+#'JG',
+#'JGE',
+#'JL',
+#'JLE',
+#'JMP',
+#'JNAE',
+#'JNB',
+#'JNBE',
+#'JNC',
+#'JNE',
+#'JNG',
+#'JNGE',
+#'JNL',
+#'JNLE',
+#'JNO',
+#'JNP',
+#'JNS',
+#'JNZ',
+#'JO',
+#'JP',
+#'JPE',
+#'JPO',
+#'JS',
+#'JZ',
+#'CALL',
+#'LEAVE',
+#'LOOP',
+#'LOOPE',
+#'LOOPNE',
+#'LOOPNZ',
+#'LOOPZ',
+#'RET',
+#'RET',
+
+# String Instructions
+#'CMPS',
+#'CMPSB',
+#'CMPSD',
+#'CMPSW',
+#'LODS',
+#'LODSB',
+#'LODSD',
+#'LODSW',
+#'MOVS',
+#'MOVSB',
+#'MOVSD',
+#'MOVSW',
+#'REP',
+#'REPNE',
+#'REPNZ',
+#'REPE',
+#'REPZ',
+#'SCAS',
+#'SCASB',
+#'SCASD',
+#'SCASW',
+#'STOS',
+#'STOSB',
+#'STOSD',
+#'STOSW',
+
+# I/O Instructions
+#'IN',
+#'INS',
+#'INSB',
+#'INSD',
+#'INSW',
+#'OUT',
+#'OUTS',
+#'OUTSB',
+#'OUTSD',
+#'OUTSW',
+
+# Flag Control (EFLAG) Instructions
+#'CLC',
+#'CLD',
+#'CLI',
+#'CMC',
+#'LAHF',
+#'POPF',
+#'POPFL',
+#'PUSHF',
+#'PUSHFL',
+#'SAHF',
+#'STC',
+#'STD',
+#'STI',
+
+# Segment Register Instructions
+#'LDS',
+#'LES',
+#'LFS',
+#'LGS',
+#'LSS',
+
+# Miscellaneous Instructions
+#'CPUID',
+'LEA r, mem',
+#'NOP',
+#'UD2',
+#'XLAT',
+#'XLATB',
+
+#############################################################################
+# Floating-point instructions for x87
+
+# TODO
 
  );
 
