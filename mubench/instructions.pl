@@ -20,7 +20,28 @@
 @instructions = 
 (
 
-# SSE3
+# SSSE3 (aka SSE4, Merom New Instructions)
+'PSIGNB xmm, xmm',
+'PSIGNW xmm, xmm',
+'PSIGND xmm, xmm',
+'PSHUFB xmm, xmm',
+'PMULHRSW xmm, xmm',
+'PMADDUBSW xmm, xmm',
+'PHSUBW xmm, xmm',
+'PHSUBSW xmm, xmm',
+'PHSUBD xmm, xmm',
+'PHADDW xmm, xmm',
+'PHADDSW xmm, xmm',
+'PHADDD xmm, xmm',
+'PALIGNR xmm, xmm, imm8',
+'PABSB xmm, xmm',
+'PABSW xmm, xmm',
+'PABSD xmm, xmm',
+
+# Source: http://www.intel.com/design/pentium4/manuals/index_new.htm
+# and ftp://download.intel.com/design/Pentium4/manuals/24896613.pdf
+
+# SSE3 single/double (aka Prescott New Instructions)
 'ADDSUBPD xmm, xmm',
 'ADDSUBPS xmm, xmm',
 'HADDPD xmm, xmm',
@@ -67,8 +88,8 @@
 'PEXTRW r32, xmm, imm8',
 'PINSRW xmm, r32, imm8',
 'PMADDWD xmm, xmm',
-#'PMAX xmm, xmm',
-#'PMIN xmm, xmm',
+'PMAX xmm, xmm',
+'PMIN xmm, xmm',
 'PMOVMSKB r32, xmm',
 'PMULHUW xmm, xmm',
 'PMULHW xmm, xmm',
@@ -261,6 +282,39 @@
 'PUNPCKLDQ mm, mm',
 'PXOR mm, mm',
 'EMMS',
+
+# Source: http://www.amd.com/us-en/assets/content_type/white_papers_and_tech_docs/25112.PDF
+
+# 3DNow!
+'FEMMS',
+'PAVGUSB mm, mm',
+'PF2ID mm, mm',
+'PFACC mm, mm',
+'PFADD mm, mm',
+'PFCMPEQ mm, mm',
+'PFCMPGE mm, mm',
+'PFCMPGT mm, mm',
+'PFMAX mm, mm',
+'PFMIN mm, mm',
+'PFMUL mm, mm',
+'PFRCP mm, mm',
+'PFRCPIT1 mm, mm',
+'PFRCPIT2 mm, mm',
+'PFRSQIT1 mm, mm',
+'PFRSQRT mm, mm',
+'PFSUB mm, mm',
+'PFSUBR mm, mm',
+'PI2FD mm, mm',
+'PMULHRW mm, mm',
+'PREFETCH mem8',
+'PREFETCHW mem8',
+
+# 3DNow! Extensions
+'PF2IW mm, mm',
+'PFNACC mm, mm',
+'PFPNACC mm, mm',
+'PI2FW mm, mm',
+'PSWAPD mm, mm',
 
  );
 

@@ -19,8 +19,10 @@
 
 
 use IO::File;
+use IPC::Run qw(run);
 
 $cpuspeed = $ARGV[0] || &getcpuspeed();
+$loops = 10000;
 
 require "instructions.pl";
 
@@ -31,12 +33,14 @@ foreach my $l (@instructions)
     if ($opspec =~ m!^(\w+) xmm, xmm$! ||
         $opspec =~ m!^(\w+) xmm, xmm/imm8$! ||
         $opspec =~ m!^(\w+) xmm, xmm, imm8$! ||
+        $opspec =~ m!^(\w+) mm, mm$! ||
+        $opspec =~ m!^(\w+) mm, mm/imm8$! ||
         0 )
     {
         my $cmd = $1;
         #next if ($cmd =~ m!^cvt!);
         #next if ($cmd =~ m!^cmp!);
-        next if ($cmd =~ m!^(div|sqrt|rsqrt|rcp)!);
+        #next if ($cmd =~ m!^(div|sqrt|rsqrt|rcp)!);
         push(@opspecs, $opspec);
     }
 }
@@ -55,7 +59,7 @@ foreach my $opspec (@opspecs)
     elsif ($cmd =~ m!pd$!) { $init_xmm_regs = 'double'; }
     
     $code .= &generate_one_test(
-                       test_name => "$cmd throughput",
+                       test_name => "$opspec throughput",
                        ops => [ $opspec ],
                        cmds_per_loop => 1024,
                        num_xmm_regs => 16,
@@ -64,7 +68,7 @@ foreach my $opspec (@opspecs)
                        );
     
     #&generate_one_test(
-    #    test_name => "$cmd throughput2",
+    #    test_name => "$opspec throughput2",
     #    ops => [ $opspec ],
     #    cmds_per_loop => 1024,
     #    num_xmm_regs => 16,
@@ -73,7 +77,7 @@ foreach my $opspec (@opspecs)
     #    );
     
     $code .=  &generate_one_test(
-                       test_name => "$cmd latency",
+                       test_name => "$opspec latency",
                        ops => [ $opspec ],
                        cmds_per_loop => 1024,
                        num_xmm_regs => 16,
@@ -82,20 +86,20 @@ foreach my $opspec (@opspecs)
                        );
     
     
-    foreach my $opspec2 (@opspecs)
-    {
-        $opspec2 =~ m!^(\w+)!;
-        my $cmd2 = $1;
-        
-        $code .= &generate_one_test(
-                           test_name => "  $cmd,$cmd2 throughput",
-                           ops => [ $opspec, $opspec2 ],
-                           cmds_per_loop => 1024,
-                           num_xmm_regs => 16,
-                           reg_use_pattern => 'throughput',
-                           init_xmm_regs => $init_xmm_regs,
-                           );
-    }
+    #foreach my $opspec2 (@opspecs)
+    #{
+    #    $opspec2 =~ m!^(\w+)!;
+    #    my $cmd2 = $1;
+    #    
+    #    $code .= &generate_one_test(
+    #                       test_name => "  $cmd,$cmd2 throughput",
+    #                       ops => [ $opspec, $opspec2 ],
+    #                       cmds_per_loop => 1024,
+    #                       num_xmm_regs => 16,
+    #                       reg_use_pattern => 'throughput',
+    #                       init_xmm_regs => $init_xmm_regs,
+    #                       );
+    #}
 
     $code .= &code_footer;
 
@@ -103,9 +107,14 @@ foreach my $opspec (@opspecs)
     $fh->print($code);
     $fh->close;
 
-    system("gcc -o test test.c");
+    my ($in, $out, $err);
+    my ($rc);
+    $rc = run ["gcc", "-o", "test", "test.c"], \$in, \$out, \$err;
+    if ($err =~ m!Error: no such instruction!) { printf("error: cannot compile %s \n", $opspec); next; }
     
-    system("./test");
+    $rc = run ["./test"], \$in, \$out, \$err;
+    if ($rc == 0) { printf("error: cannot run %s: %d \n", $opspec, $?); next; }
+    printf($out);
 }
 
 
@@ -128,7 +137,7 @@ int main( int argc, char **argv )
     struct timeval tv;
     long int i;
 
-    long int loops = 1000;
+    long int loops = '.$loops.';
     double cpuspeed = '.$cpuspeed.';
 
     if (argc > 1) { cpuspeed = atof(argv[1]) * 1e+06; }
@@ -229,37 +238,49 @@ sub generate_one_test
         }
         else { die "could not parse opspec"; }
         
-        my ($reg1, $reg2);
+        my ($xmm1, $xmm2);
+        my ($mm1, $mm2);
         if ($opt{reg_use_pattern} eq 'throughput')
         {
             # throughput
             # A*B->A, B*C->B, ...
-            $reg1 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs});
-            $reg2 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs});
+            $xmm1 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs});
+            $xmm2 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs});
+            $mm1 = sprintf('mm%d', ($i+1) % 8);
+            $mm2 = sprintf('mm%d', ($i  ) % 8);
         }
         if ($opt{reg_use_pattern} eq 'throughput2')
         {
             # throughput, type two
             # A*B->A, C*D->C, ...
-            $reg1 = sprintf('xmm%d', (2*$i+1) % $opt{num_xmm_regs});
-            $reg2 = sprintf('xmm%d', (2*$i  ) % $opt{num_xmm_regs});
+            $xmm1 = sprintf('xmm%d', (2*$i+1) % $opt{num_xmm_regs});
+            $xmm2 = sprintf('xmm%d', (2*$i  ) % $opt{num_xmm_regs});
+            $mm1 = sprintf('mm%d', (2*$i+1) % 8);
+            $mm2 = sprintf('mm%d', (2*$i  ) % 8);
         }
         if ($opt{reg_use_pattern} eq 'latency')
         {
             # latency
             # A*B->B, B*C->C, ...
-            $reg1 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs});
-            $reg2 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs});
+            $xmm1 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs});
+            $xmm2 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs});
+            $mm1 = sprintf('mm%d', ($i  ) % 8);
+            $mm2 = sprintf('mm%d', ($i+1) % 8);
         }
         
         if ($opspec eq "$op xmm, xmm" ||
             $opspec eq "$op xmm, xmm/imm8")
         {
-            $code .= '"'.$op.' %%'.$reg1.', %%'.$reg2.'\n"'."\n";
+            $code .= '"'.$op.' %%'.$xmm1.', %%'.$xmm2.'\n"'."\n";
         }
         elsif ($opspec eq "$op xmm, xmm, imm8")
         {
-            $code .= '"'.$op.' $255, %%'.$reg1.', %%'.$reg2.'\n"'."\n";
+            $code .= '"'.$op.' $255, %%'.$xmm1.', %%'.$xmm2.'\n"'."\n"; # FIXME could be better imm8
+        }
+        elsif ($opspec eq "$op mm, mm"||
+               $opspec eq "$op mm, mm/imm8")
+        {
+            $code .= '"'.$op.' %%'.$mm1.', %%'.$mm2.'\n"'."\n";
         }
     }
     $code .= '
