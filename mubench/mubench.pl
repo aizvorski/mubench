@@ -17,34 +17,69 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 #############################################################################
 
-
 use IO::File;
 use IPC::Run qw(run);
-
-$cpuspeed = $ARGV[0] || &getcpuspeed();
-$loops = 10000;
+use Getopt::Long;
 
 require "instructions.pl";
+
+$cpuspeed = &getcpuspeed();
+$loops = 10000;
+$have_x86_64 = 1;
+$accurate = 0;
+$repeats = 1;
+$only = '';
+
+$result = GetOptions ("mhz=i" => \$cpuspeed,
+                      "only=s"   => \$only,
+                      "accurate" => \$accurate,
+                      );
+
+if ($accurate) { $repeats = 10; }
 
 @opspecs = ();
 foreach my $l (@instructions)
 {
     my $opspec = lc($l);
+    $opspec =~ s!xmm/imm8!xmm!;
+    $opspec =~ s!mm/imm8!mm!;
+
     if ($opspec =~ m!^(\w+) xmm, xmm$! ||
-        $opspec =~ m!^(\w+) xmm, xmm/imm8$! ||
         $opspec =~ m!^(\w+) xmm, xmm, imm8$! ||
         $opspec =~ m!^(\w+) mm, mm$! ||
-        $opspec =~ m!^(\w+) mm, mm/imm8$! ||
+        $opspec =~ m!^(\w+) r, r$! ||
         0 )
     {
-        my $cmd = $1;
-        #next if ($cmd =~ m!^cvt!);
-        #next if ($cmd =~ m!^cmp!);
-        #next if ($cmd =~ m!^(div|sqrt|rsqrt|rcp)!);
-        push(@opspecs, $opspec);
+        if ($opspec =~ m!^(\w+) r, r$!)
+        {
+            my $op = $1;
+            if ($have_x86_64)
+            {
+                push(@opspecs, "$op r64, r64");
+            }
+
+            push(@opspecs, "$op r32, r32");
+        }
+        else
+        {
+            push(@opspecs, $opspec);
+        }
     }
 }
 
+my @only_patterns = split(/,/, $only);
+if ($only)
+{
+    my @opspecs_selected = ();
+    foreach my $o (@opspecs)
+    {
+        foreach my $p (@only_patterns)
+        {
+            if ($o =~ m!$p!) { push(@opspecs_selected, $o); last; }
+        }
+    }
+    @opspecs = @opspecs_selected;
+}
 
 foreach my $opspec (@opspecs)
 {
@@ -52,55 +87,21 @@ foreach my $opspec (@opspecs)
 
     $opspec =~ m!^(\w+)!;
     my $cmd = $1;
-
-    my $init_xmm_regs = 'integer';
-    
-    if ($cmd =~ m!ps$!) { $init_xmm_regs = 'float'; }
-    elsif ($cmd =~ m!pd$!) { $init_xmm_regs = 'double'; }
     
     $code .= &generate_one_test(
                        test_name => "$opspec throughput",
                        ops => [ $opspec ],
                        cmds_per_loop => 1024,
-                       num_xmm_regs => 16,
                        reg_use_pattern => 'throughput',
-                       init_xmm_regs => $init_xmm_regs,
                        );
-    
-    #&generate_one_test(
-    #    test_name => "$opspec throughput2",
-    #    ops => [ $opspec ],
-    #    cmds_per_loop => 1024,
-    #    num_xmm_regs => 16,
-    #    reg_use_pattern => 'throughput2',
-    #    init_xmm_regs => $init_xmm_regs,
-    #    );
     
     $code .=  &generate_one_test(
                        test_name => "$opspec latency",
                        ops => [ $opspec ],
                        cmds_per_loop => 1024,
-                       num_xmm_regs => 16,
                        reg_use_pattern => 'latency',
-                       init_xmm_regs => $init_xmm_regs,
                        );
-    
-    
-    #foreach my $opspec2 (@opspecs)
-    #{
-    #    $opspec2 =~ m!^(\w+)!;
-    #    my $cmd2 = $1;
-    #    
-    #    $code .= &generate_one_test(
-    #                       test_name => "  $cmd,$cmd2 throughput",
-    #                       ops => [ $opspec, $opspec2 ],
-    #                       cmds_per_loop => 1024,
-    #                       num_xmm_regs => 16,
-    #                       reg_use_pattern => 'throughput',
-    #                       init_xmm_regs => $init_xmm_regs,
-    #                       );
-    #}
-
+        
     $code .= &code_footer;
 
     my $fh = new IO::File("test.c", "w");
@@ -109,12 +110,31 @@ foreach my $opspec (@opspecs)
 
     my ($in, $out, $err);
     my ($rc);
-    $rc = run ["gcc", "-o", "test", "test.c"], \$in, \$out, \$err;
-    if ($err =~ m!Error: no such instruction!) { printf("error: cannot compile %s \n", $opspec); next; }
-    
-    $rc = run ["./test"], \$in, \$out, \$err;
-    if ($rc == 0) { printf("error: cannot run %s: %d \n", $opspec, $?); next; }
-    printf($out);
+    unlink("./test");
+
+    $rc = run ["gcc", "-o", "./test", "test.c"], \$in, \$out, \$err;
+    if (($err =~ m!Error: no such instruction!) || 
+        ($err =~ m!Error: suffix or operands invalid!) )
+    {
+        printf("error: cannot compile %s \n", $opspec); 
+        next;
+    }
+
+    my ($minlatency, $minthroughput);
+    for (my $i = 0; $i < $repeats; $i++)
+    {
+        $rc = run ["./test"], \$in, \$out, \$err;
+        if ($rc == 0) { printf("error: cannot run %s: %d \n", $opspec, $?); next; }
+        my ($latency, $throughput);
+        if ($out =~ m!latency \s*=\s*(\d+\.\d+)!) { $latency = $1; }
+        if ($out =~ m!throughput \s*=\s*(\d+\.\d+)!) { $throughput = $1; }
+        if (! $minlatency || ! $minthroughput) { $minlatency = $latency;  $minthroughput = $throughput; }
+        if ($latency < $minlatency) { $minlatency = $latency; }
+        if ($throughput < $minthroughput) { $minthroughput = $throughput; }
+    }
+
+    printf("%s\t%s\t%s\n", $opspec, $minlatency, $minthroughput);
+    #printf($out);
 }
 
 
@@ -139,9 +159,6 @@ int main( int argc, char **argv )
 
     long int loops = '.$loops.';
     double cpuspeed = '.$cpuspeed.';
-
-    if (argc > 1) { cpuspeed = atof(argv[1]) * 1e+06; }
-    if (cpuspeed == 0) { cpuspeed = 1e+09; }
 
     tzero = 0;
 
@@ -168,16 +185,35 @@ sub generate_one_test
     my $code;
 
     $opt{cmds_per_loop}   ||= 1024;
-    $opt{num_xmm_regs}    ||= 8;
+    $opt{num_xmm_regs}    ||= ($have_x84_64 ? 16 : 8);
     $opt{reg_use_pattern} ||= 'throughput';
-    $opt{init_xmm_regs}   ||= 'integer';
+
+    my @regs_32bit = qw(eax ebx ecx edx esi edi); #  ebp esp
+    my @regs_64bit = qw(rax rbx rcx rdx rsi rdi r8 r9 r10 r11 r12 r13 r14 r15);
 
     my $clobberlist = '';
     for (my $i = 0; $i < $opt{num_xmm_regs}; $i++)
     {
         $clobberlist .= '"%xmm'.$i.'", ';
     }
+    for (my $i = 0; $i < 8; $i++)
+    {
+        $clobberlist .= '"%mm'.$i.'", ';
+    }
+    for (my $i = 0; $i < scalar(@regs_32bit); $i++)
+    {
+        $clobberlist .= '"%'.$regs_32bit[ $i ].'", ';
+    }
+    for (my $i = 0; $i < scalar(@regs_64bit); $i++)
+    {
+        $clobberlist .= '"%'.$regs_64bit[ $i ].'", ';
+    }
     $clobberlist =~ s!, $!!;
+
+    # FIXME
+    if ($opt{ops}->[0] =~ m!ps !) { $opt{init_xmm_regs} = 'float'; }
+    elsif ($opt{ops}->[0] =~ m!pd !) { $opt{init_xmm_regs} = 'double'; }
+    else { $opt{init_xmm_regs} = 'integer'; }
 
 # init timers
     $code .= '
@@ -238,8 +274,11 @@ sub generate_one_test
         }
         else { die "could not parse opspec"; }
         
+        # FIXME don't need all types of registers for every op
         my ($xmm1, $xmm2);
         my ($mm1, $mm2);
+        my ($r32_1, $r32_2);
+        my ($r64_1, $r64_2);
         if ($opt{reg_use_pattern} eq 'throughput')
         {
             # throughput
@@ -248,6 +287,10 @@ sub generate_one_test
             $xmm2 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs});
             $mm1 = sprintf('mm%d', ($i+1) % 8);
             $mm2 = sprintf('mm%d', ($i  ) % 8);
+            $r32_1 = $regs_32bit[ ($i+1) % scalar(@regs_32bit) ];
+            $r32_2 = $regs_32bit[ ($i  ) % scalar(@regs_32bit) ];
+            $r64_1 = $regs_64bit[ ($i+1) % scalar(@regs_64bit) ];
+            $r64_2 = $regs_64bit[ ($i  ) % scalar(@regs_64bit) ];
         }
         if ($opt{reg_use_pattern} eq 'throughput2')
         {
@@ -257,6 +300,10 @@ sub generate_one_test
             $xmm2 = sprintf('xmm%d', (2*$i  ) % $opt{num_xmm_regs});
             $mm1 = sprintf('mm%d', (2*$i+1) % 8);
             $mm2 = sprintf('mm%d', (2*$i  ) % 8);
+            $r32_1 = $regs_32bit[ (2*$i+1) % scalar(@regs_32bit) ];
+            $r32_2 = $regs_32bit[ (2*$i  ) % scalar(@regs_32bit) ];
+            $r64_1 = $regs_64bit[ (2*$i+1) % scalar(@regs_64bit) ];
+            $r64_2 = $regs_64bit[ (2*$i  ) % scalar(@regs_64bit) ];
         }
         if ($opt{reg_use_pattern} eq 'latency')
         {
@@ -266,21 +313,31 @@ sub generate_one_test
             $xmm2 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs});
             $mm1 = sprintf('mm%d', ($i  ) % 8);
             $mm2 = sprintf('mm%d', ($i+1) % 8);
+            $r32_1 = $regs_32bit[ ($i  ) % scalar(@regs_32bit) ];
+            $r32_2 = $regs_32bit[ ($i+1) % scalar(@regs_32bit) ];
+            $r64_1 = $regs_64bit[ ($i  ) % scalar(@regs_64bit) ];
+            $r64_2 = $regs_64bit[ ($i+1) % scalar(@regs_64bit) ];
         }
         
-        if ($opspec eq "$op xmm, xmm" ||
-            $opspec eq "$op xmm, xmm/imm8")
+        if ($opspec eq "$op xmm, xmm")
         {
             $code .= '"'.$op.' %%'.$xmm1.', %%'.$xmm2.'\n"'."\n";
         }
         elsif ($opspec eq "$op xmm, xmm, imm8")
         {
-            $code .= '"'.$op.' $255, %%'.$xmm1.', %%'.$xmm2.'\n"'."\n"; # FIXME could be better imm8
+            $code .= '"'.$op.' $255, %%'.$xmm1.', %%'.$xmm2.'\n"'."\n"; # FIXME could use better imm8
         }
-        elsif ($opspec eq "$op mm, mm"||
-               $opspec eq "$op mm, mm/imm8")
+        elsif ($opspec eq "$op mm, mm")
         {
             $code .= '"'.$op.' %%'.$mm1.', %%'.$mm2.'\n"'."\n";
+        }
+        elsif ($opspec eq "$op r32, r32")
+        {
+            $code .= '"'.$op.' %%'.$r32_1.', %%'.$r32_2.'\n"'."\n";
+        }
+        elsif ($opspec eq "$op r64, r64")
+        {
+            $code .= '"'.$op.' %%'.$r64_1.', %%'.$r64_2.'\n"'."\n";
         }
     }
     $code .= '
@@ -297,7 +354,7 @@ sub generate_one_test
         gettimeofday(&tv, NULL);
         t2 = (double)tv.tv_sec + (double)tv.tv_usec/1000000.0;
         printf("%-40s = %#.5g \n", "'. $opt{test_name} .'" ,
-        (cpuspeed / (double)i) * (t2 - t1 - tzero) / (double)'.$opt{cmds_per_loop}.' );
+        (cpuspeed * 1000000 / (double)i) * (t2 - t1 - tzero) / (double)'.$opt{cmds_per_loop}.' );
         asm volatile("emms");
 
 
@@ -315,10 +372,10 @@ sub getcpuspeed
     if ($txt =~ m!cpu MHz\s*:\s*(\d+\.\d+)!)
     {
         my $mhz = $1;
-        return $mhz * 1000000;
+        return $mhz;
     }
     else
     {
-        return 1000 * 1000000;
+        return 1000;
     }
 }
