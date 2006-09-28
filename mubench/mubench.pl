@@ -30,9 +30,11 @@ $accurate = 0;
 $repeats = 1;
 $only = '';
 
-$result = GetOptions ("mhz=i" => \$cpuspeed,
-                      "only=s"   => \$only,
+$result = GetOptions (
+                      "mhz=i" => \$cpuspeed,
                       "accurate" => \$accurate,
+                      "x86-64=i" => \$have_x86_64,
+                      "only=s"   => \$only,
                       );
 
 if ($accurate) { $repeats = 10; }

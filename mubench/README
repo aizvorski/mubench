@@ -1,0 +1,35 @@
+== Running ==
+
+perl mubench.pl [options]
+
+Options:
+ --accurate                accurate looks runs tests several times
+ --mhz=2766                speed in MHz (normally autodetected from /proc/cpuinfo, set here if that is wrong)
+ --only=and,or             benchmark only instructions mathing those specified
+
+
+== Output ==
+
+instruction     latency throughput
+----------------------------------
+paddb xmm, xmm  1.0038  0.50349
+
+all in clock cycles.
+
+Latency=2 means it takes two clock cycles for the result to be available, throughput=2 means a new instruction of the same kind can only be started once every two clock cycles.  Note that smaller latency *and smaller throughput* are faster.  Many instructions have throughput < 1, meaning more than one of the same instruction can run in the same clock cycle.  The same instruction with different operands may have different performance.
+
+Run this benchmark on an otherwise idle system (or as close as possible to idle: the benchmark will try to compensate for occasional cpu usage).
+
+
+== Requires ==
+
+Perl modules: IPC::Run.
+Recent versions of gcc and binutils (gcc >= 3.3, binutils >= 2.16.92 for SSSE3/MNI support)
+
+
+== Files ==
+
+Creates test.c and test in the current working directory.
+
+Tries to read /proc/cpuinfo on startup.
+

@@ -1,0 +1,33 @@
+If you have a cpu for which benchmark results are not available yet, please run this benchmark and send the results to <aizvorski@gmail.com>.
+
+Available:
+
+AMD K7
+AMD K8           15-43-1
+Intel P4         15-2-7
+Intel Core 2 Duo 6-15-6
+
+
+Not available:
+
+Intel Pentium M
+Via C7
+VIA C3
+NSC Geode
+NexGen Nx586
+Cyrix M1
+Cyrix M2
+Cyrix MediaGX
+AMD K5
+AMD K6
+Transmeta Crusoe
+Transmeta Efficeon
+80486
+Intel Pentium
+Intel Pentium II
+Intel Pentium Pro
+Intel PIII
+Rise
+SiS
+UMC
+
