@@ -17,27 +17,42 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 #############################################################################
 
+$VERSION = '0.2.0';
+
 use IO::File;
 use IPC::Run qw(run);
 use Getopt::Long;
 
 require "instructions.pl";
 
+$options_string = join(' ', $0, @ARGV);
+
 $cpuspeed = &getcpuspeed();
-$loops = 10000;
-$have_x86_64 = 1;
-$accurate = 0;
-$repeats = 1;
-$only = '';
+$loops = 100000;
+$have_64bit = 1;
+$have_32bit = 1;
+$pairs = 1;
+$accurate = 1;
+$fast = 0;
+$repeats = 3;
+$include = '';
+$output = 'xml';
+$outfile = undef;
 
 $result = GetOptions (
-                      "mhz=i" => \$cpuspeed,
-                      "accurate" => \$accurate,
-                      "x86-64=i" => \$have_x86_64,
-                      "only=s"   => \$only,
+                      "mhz=i"       => \$cpuspeed,
+                      "accurate!"   => \$accurate,
+                      "fast!"       => \$fast,
+                      "64bit!"      => \$have_64bit,
+                      "32bit!"      => \$have_32bit,
+                      "pairs!"      => \$pairs,
+                      "include=s"   => \$include,
+                      "output=s"    => \$output,
+                      "outfile=s"   => \$outfile,
                       );
 
 if ($accurate) { $repeats = 10; }
+if ($fast) { $repeats = 1; }
 
 @opspecs = ();
 foreach my $l (@instructions)
@@ -55,12 +70,14 @@ foreach my $l (@instructions)
         if ($opspec =~ m!^(\w+) r, r$!)
         {
             my $op = $1;
-            if ($have_x86_64)
+            if ($have_64bit)
             {
                 push(@opspecs, "$op r64, r64");
             }
-
-            push(@opspecs, "$op r32, r32");
+            if ($have_32bit)
+            {
+                push(@opspecs, "$op r32, r32");
+            }
         }
         else
         {
@@ -69,13 +86,14 @@ foreach my $l (@instructions)
     }
 }
 
-my @only_patterns = split(/,/, $only);
-if ($only)
+# filter instructions based on include patterns
+my @include_patterns = split(/,/, $include);
+if ($include)
 {
     my @opspecs_selected = ();
     foreach my $o (@opspecs)
     {
-        foreach my $p (@only_patterns)
+        foreach my $p (@include_patterns)
         {
             if ($o =~ m!$p!) { push(@opspecs_selected, $o); last; }
         }
@@ -83,13 +101,40 @@ if ($only)
     @opspecs = @opspecs_selected;
 }
 
+if ($pairs) { $num_tests = scalar(@opspecs) * scalar(@opspecs); }
+else { $num_tests = scalar(@opspecs); }
+$N = 0;
+
+# open output, print info
+print STDERR "mubench $VERSION\n";
+print STDERR "running $num_tests tests\n";
+if ($output eq 'xml')
+{
+    if (! $outfile) { $outfile = "mubench-results-".&timestamp().".xml"; }
+    $outfh = new IO::File($outfile, "w");
+    $outfh->printf("<?xml version=\"1.0\"?>\n<mubench>\n\n");
+    $outfh->printf("<options>".$options_string."</options>\n\n");
+    $outfh->printf("<start-time>".&timestamp()."</start-time>\n");
+}
+elsif ($output eq 'tsv')
+{
+    if (! $outfile) { $outfh = new IO::Handle; $outfh->fdopen(fileno(STDOUT), "w"); }
+    else { $outfh = new IO::File($outfile, "w"); }
+    $outfh->printf("%s\t%s\t%s\t%s\n", 'instruction 1', 'instruction 2', 'latency', 'throughput');
+}
+else
+{
+    if (! $outfile) { $outfh = new IO::Handle; $outfh->fdopen(fileno(STDOUT), "w"); }
+    else { $outfh = new IO::File($outfile, "w"); }
+    $outfh->printf("%-20s %-20s %-10s %-10s\n", 'instruction 1', 'instruction 2', 'latency', 'throughput');
+}
+print STDERR "saving results to ".($outfile ? $outfile : "standard output")."\n";
+
+# run single tests
 foreach my $opspec (@opspecs)
 {
     my $code = &code_header;
 
-    $opspec =~ m!^(\w+)!;
-    my $cmd = $1;
-    
     $code .= &generate_one_test(
                        test_name => "$opspec throughput",
                        ops => [ $opspec ],
@@ -106,6 +151,115 @@ foreach my $opspec (@opspecs)
         
     $code .= &code_footer;
 
+    my $result = &run_test($code, $opspec);
+
+    if ($output eq 'xml')
+    {
+        $outfh->printf("<test><op>%s</op><l>%s</l><t>%s</t></test>\n", $opspec, $result->{latency}, $result->{throughput});
+    }
+    elsif ($output eq 'tsv')
+    {
+        $outfh->printf("%s\t%s\t%s\t%s\n", $opspec, '', $result->{latency}, $result->{throughput});
+    }
+    else
+    {
+        $outfh->printf("%-20s %-20s %-10s %-10s\n", $opspec, '', $result->{latency}, $result->{throughput});
+    }
+
+    if ($N % 10 == 0) { print STDERR "\r$N out of $num_tests tests done \r"; }
+    $N++;
+}
+
+# run pairs tests
+if ($pairs)
+{
+foreach my $opspec (@opspecs)
+{
+foreach my $opspec2 (@opspecs)
+{
+    next if ($opspec2 le $opspec); # avoid the redundant calculations, A,B == B,A
+
+    my $code = &code_header;
+
+    $code .= &generate_one_test(
+                       test_name => "$opspec, $opspec2 throughput",
+                       ops => [ $opspec, $opspec2 ],
+                       cmds_per_loop => 1024,
+                       reg_use_pattern => 'throughput',
+                       );
+    
+    # NOTE cannot measure latency of mix
+
+    $code .= &code_footer;
+
+    my $result = &run_test($code, $opspec);
+
+    if ($output eq 'xml')
+    {
+        $outfh->printf("<test><op>%s</op><op>%s</op><l>%s</l><t>%s</t></test>\n", $opspec, $opspec2, $result->{latency}, $result->{throughput});
+    }
+    elsif ($output eq 'tsv')
+    {
+        $outfh->printf("%s\t%s\t%s\t%s\n", $opspec, $opspec2, $result->{latency}, $result->{throughput});
+    }
+    else
+    {
+        $outfh->printf("%-20s%-20s %-10s %-10s\n", $opspec, $opspec2, $result->{latency}, $result->{throughput});
+    }
+
+    if ($N % 10 == 0) { print STDERR "\r$N out of $num_tests tests done "; }
+    $N++;
+}
+}
+}
+
+print STDERR "\r$N out of $num_tests tests done \n";
+
+# add extra info to xml file
+if ($output eq 'xml')
+{
+    $outfh->printf("<end-time>".&timestamp()."</end-time>\n");
+
+    my $fh = new IO::File("/proc/cpuinfo", "r");
+    my $txt = join('', $fh->getlines());
+    $fh->close();
+    $outfh->printf("\n<cpuinfo>$txt</cpuinfo>\n");
+
+    my ($in, $out, $err);
+    run ["gcc", "-v"], \$in, \$out, \$err;
+    $outfh->printf("\n<gcc-version>$err</gcc-version>\n");
+
+    run ["as", "-v"], \$in, \$out, \$err;
+    $outfh->printf("\n<as-version>$err</as-version>\n");
+
+    run ["uname", "-a"], \$in, \$out, \$err;
+    $outfh->printf("\n<uname>$out</uname>\n");
+
+    $outfh->printf("\n</mubench>\n");
+    $outfh->close();
+
+    my ($in, $out, $err);
+    run ["md5sum", $outfile], \$in, \$out, \$err;
+    my $md5 = $out;
+
+    $outfh = new IO::File($outfile, "a");
+    $outfh->printf("<!-- $md5 -->\n");
+    $outfh->close();
+    
+    print STDERR "compressing results to $outfile.bz2\n";
+
+    run ["bzip2", $outfile];
+}
+print STDERR "mubench done\n";
+
+
+# run one test, input is code prepared by generate_one_test etc
+sub run_test
+{
+    my ($code, $name) = @_;
+    
+    my $result = +{};
+
     my $fh = new IO::File("test.c", "w");
     $fh->print($code);
     $fh->close;
@@ -118,15 +272,19 @@ foreach my $opspec (@opspecs)
     if (($err =~ m!Error: no such instruction!) || 
         ($err =~ m!Error: suffix or operands invalid!) )
     {
-        printf("error: cannot compile %s \n", $opspec); 
-        next;
+        $result->{err} = sprintf("error: cannot compile %s \n", $name); 
+        return $result;
     }
 
     my ($minlatency, $minthroughput);
     for (my $i = 0; $i < $repeats; $i++)
     {
         $rc = run ["./test"], \$in, \$out, \$err;
-        if ($rc == 0) { printf("error: cannot run %s: %d \n", $opspec, $?); next; }
+        if ($rc == 0)
+        {
+            $result->{err} = sprintf("error: cannot run %s: %d \n", $name, $?);
+            return $result;
+        }
         my ($latency, $throughput);
         if ($out =~ m!latency \s*=\s*(\d+\.\d+)!) { $latency = $1; }
         if ($out =~ m!throughput \s*=\s*(\d+\.\d+)!) { $throughput = $1; }
@@ -135,10 +293,10 @@ foreach my $opspec (@opspecs)
         if ($throughput < $minthroughput) { $minthroughput = $throughput; }
     }
 
-    printf("%s\t%s\t%s\n", $opspec, $minlatency, $minthroughput);
-    #printf($out);
+    $result->{latency} = $minlatency;
+    $result->{throughput} = $minthroughput;
+    return $result;
 }
-
 
 
 sub code_header
@@ -187,8 +345,8 @@ sub generate_one_test
     my $code;
 
     $opt{cmds_per_loop}   ||= 1024;
-    $opt{num_xmm_regs}    ||= ($have_x84_64 ? 16 : 8);
-    $opt{reg_use_pattern} ||= 'throughput';
+    $opt{num_xmm_regs}    = ($have_64bit ? 16 : 8);
+    #$opt{reg_use_pattern} ||= 'throughput';
 
     my @regs_32bit = qw(eax ebx ecx edx esi edi); #  ebp esp
     my @regs_64bit = qw(rax rbx rcx rdx rsi rdi r8 r9 r10 r11 r12 r13 r14 r15);
@@ -222,11 +380,13 @@ sub generate_one_test
 // ***************************************************************************
 // '.$opt{test_name}.'
 
-        asm volatile("emms");
         gettimeofday(&tv, NULL);
         t1 = (double)tv.tv_sec + (double)tv.tv_usec/1000000.0;
+
         asm volatile("emms");
 ';
+
+
 
 # init registers
     $code .= '
@@ -353,12 +513,11 @@ sub generate_one_test
     $code .= '
         }
         asm volatile("emms");
+
         gettimeofday(&tv, NULL);
         t2 = (double)tv.tv_sec + (double)tv.tv_usec/1000000.0;
         printf("%-40s = %#.5g \n", "'. $opt{test_name} .'" ,
         (cpuspeed * 1000000 / (double)i) * (t2 - t1 - tzero) / (double)'.$opt{cmds_per_loop}.' );
-        asm volatile("emms");
-
 
         ';
     
@@ -368,6 +527,9 @@ sub generate_one_test
 
 sub getcpuspeed
 {
+    # try to kick frequency-variable cpu into max speed
+    for (my $i = 0; $i < 10000000; $i++) { }
+
     my $fh = new IO::File("/proc/cpuinfo", "r");
     my $txt = join('', $fh->getlines());
     $fh->close();
@@ -380,4 +542,11 @@ sub getcpuspeed
     {
         return 1000;
     }
+}
+
+
+sub timestamp
+{
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+    return sprintf("%04d%02d%02dT%02d%02d%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec);
 }

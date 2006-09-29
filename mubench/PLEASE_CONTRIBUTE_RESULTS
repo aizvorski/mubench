@@ -1,33 +1,27 @@
-If you have a cpu for which benchmark results are not available yet, please run this benchmark and send the results to <aizvorski@gmail.com>.
+Please run this benchmark on your CPU and upload the results to http://mubench.sourceforge.org/contribute.html .
 
-Available:
+Collected results are available at http://mubench.sourceforge.net/ .
 
-AMD K7
-AMD K8           15-43-1
-Intel P4         15-2-7
-Intel Core 2 Duo 6-15-6
-
-
-Not available:
+Processors of particular interest (ones that I don't have access to):
 
 Intel Pentium M
-Via C7
-VIA C3
-NSC Geode
-NexGen Nx586
-Cyrix M1
-Cyrix M2
-Cyrix MediaGX
-AMD K5
-AMD K6
-Transmeta Crusoe
-Transmeta Efficeon
-80486
-Intel Pentium
+Intel Pentium III
 Intel Pentium II
 Intel Pentium Pro
-Intel PIII
+Intel Pentium
+AMD K6
+AMD K5
+Via C7
+VIA C3
+Transmeta Crusoe
+Transmeta Efficeon
+NSC Geode
+NexGen Nx586
+Cyrix MediaGX
+Cyrix M2
+Cyrix M1
 Rise
-SiS
+SiS SiS55x
 UMC
-
+Centaur
+80486 and earlier
