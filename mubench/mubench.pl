@@ -509,7 +509,7 @@ sub generate_one_test
             $r64_2 = $regs_64bit[ ($i+1) % scalar(@regs_64bit) ];
         }
 
-        if ($op =~ m!^(div|idiv|mul|imul)!) { $r32_2 = 'eax'; $r64_2 = 'rax'; }
+        if ($op =~ m!^(div|idiv|mul|imul)$!) { $r32_2 = 'eax'; $r64_2 = 'rax'; }
         my $imm8 = 16;
 
         if ($opspec eq "$op xmm, xmm")
