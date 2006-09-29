@@ -65,6 +65,8 @@ foreach my $l (@instructions)
         $opspec =~ m!^(\w+) xmm, xmm, imm8$! ||
         $opspec =~ m!^(\w+) mm, mm$! ||
         $opspec =~ m!^(\w+) r, r$! ||
+        $opspec =~ m!^(\w+) r$! ||
+        $opspec =~ m!^(\w+) r, imm8$! ||
         0 )
     {
         if ($opspec =~ m!^(\w+) r, r$!)
@@ -77,6 +79,30 @@ foreach my $l (@instructions)
             if ($have_32bit)
             {
                 push(@opspecs, "$op r32, r32");
+            }
+        }
+        elsif ($opspec =~ m!^(\w+) r$!)
+        {
+            my $op = $1;
+            if ($have_64bit)
+            {
+                push(@opspecs, "$op r64");
+            }
+            if ($have_32bit)
+            {
+                push(@opspecs, "$op r32");
+            }
+        }
+        elsif ($opspec =~ m!^(\w+) r, imm8$!)
+        {
+            my $op = $1;
+            if ($have_64bit)
+            {
+                push(@opspecs, "$op r64, imm8");
+            }
+            if ($have_32bit)
+            {
+                push(@opspecs, "$op r32, imm8");
             }
         }
         else
@@ -112,7 +138,9 @@ if ($output eq 'xml')
 {
     if (! $outfile) { $outfile = "mubench-results-".&timestamp().".xml"; }
     $outfh = new IO::File($outfile, "w");
-    $outfh->printf("<?xml version=\"1.0\"?>\n<mubench>\n\n");
+    $outfh->printf("<?xml version=\"1.0\"?>\n");
+    $outfh->printf("<mubench>\n\n");
+    $outfh->printf("<version>".$VERSION."</version>\n");
     $outfh->printf("<options>".$options_string."</options>\n\n");
     $outfh->printf("<start-time>".&timestamp()."</start-time>\n");
 }
@@ -480,26 +508,45 @@ sub generate_one_test
             $r64_1 = $regs_64bit[ ($i  ) % scalar(@regs_64bit) ];
             $r64_2 = $regs_64bit[ ($i+1) % scalar(@regs_64bit) ];
         }
-        
+
+        if ($op =~ m!^(div|idiv|mul|imul)!) { $r32_2 = 'eax'; $r64_2 = 'rax'; }
+        my $imm8 = 16;
+
         if ($opspec eq "$op xmm, xmm")
         {
             $code .= '"'.$op.' %%'.$xmm1.', %%'.$xmm2.'\n"'."\n";
         }
         elsif ($opspec eq "$op xmm, xmm, imm8")
         {
-            $code .= '"'.$op.' $255, %%'.$xmm1.', %%'.$xmm2.'\n"'."\n"; # FIXME could use better imm8
+            $code .= '"'.$op.' $'.$imm8.', %%'.$xmm1.', %%'.$xmm2.'\n"'."\n"; # FIXME could use better imm8
         }
         elsif ($opspec eq "$op mm, mm")
         {
             $code .= '"'.$op.' %%'.$mm1.', %%'.$mm2.'\n"'."\n";
         }
+        elsif ($opspec eq "$op r64, r64")
+        {
+            $code .= '"'.$op.' %%'.$r64_1.', %%'.$r64_2.'\n"'."\n";
+        }
         elsif ($opspec eq "$op r32, r32")
         {
             $code .= '"'.$op.' %%'.$r32_1.', %%'.$r32_2.'\n"'."\n";
         }
-        elsif ($opspec eq "$op r64, r64")
+        elsif ($opspec eq "$op r64")
         {
-            $code .= '"'.$op.' %%'.$r64_1.', %%'.$r64_2.'\n"'."\n";
+            $code .= '"'.$op.' %%'.$r64_1.'\n"'."\n";
+        }
+        elsif ($opspec eq "$op r32")
+        {
+            $code .= '"'.$op.' %%'.$r32_1.'\n"'."\n";
+        }
+        elsif ($opspec eq "$op r64, imm8")
+        {
+            $code .= '"'.$op.' $'.$imm8.', %%'.$r64_1.'\n"'."\n";
+        }
+        elsif ($opspec eq "$op r32, imm8")
+        {
+            $code .= '"'.$op.' $'.$imm8.', %%'.$r32_1.'\n"'."\n";
         }
     }
     $code .= '
