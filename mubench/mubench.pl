@@ -180,10 +180,18 @@ foreach my $opspec (@opspecs)
     $code .= &code_footer;
 
     my $result = &run_test($code, $opspec);
+    if ($result->{err}) { print STDERR $result->{err}, "\n"; }
 
     if ($output eq 'xml')
     {
-        $outfh->printf("<test><op>%s</op><l>%s</l><t>%s</t></test>\n", $opspec, $result->{latency}, $result->{throughput});
+        if (! $result->{err})
+        {
+            $outfh->printf("<test><op>%s</op><l>%s</l><t>%s</t></test>\n", $opspec, $result->{latency}, $result->{throughput});
+        }
+        else
+        {
+            $outfh->printf("<test><op>%s</op><err>%s</err></test>\n", $opspec, $result->{err});
+        }
     }
     elsif ($output eq 'tsv')
     {
@@ -221,10 +229,18 @@ foreach my $opspec2 (@opspecs)
     $code .= &code_footer;
 
     my $result = &run_test($code, $opspec);
+    if ($result->{err}) { print STDERR $result->{err}; }
 
     if ($output eq 'xml')
     {
-        $outfh->printf("<test><op>%s</op><op>%s</op><l>%s</l><t>%s</t></test>\n", $opspec, $opspec2, $result->{latency}, $result->{throughput});
+        if (! $result->{err})
+        {
+            $outfh->printf("<test><op>%s</op><op>%s</op><l>%s</l><t>%s</t></test>\n", $opspec, $opspec2, $result->{latency}, $result->{throughput});
+        }
+        else
+        {
+            $outfh->printf("<test><op>%s</op><op>%s</op><err>%s</err></test>\n", $opspec, $opspec2, $result->{err});
+        }
     }
     elsif ($output eq 'tsv')
     {
@@ -288,7 +304,7 @@ sub run_test
     
     my $result = +{};
 
-    my $fh = new IO::File("test.c", "w");
+    my $fh = new IO::File("./test.c", "w");
     $fh->print($code);
     $fh->close;
 
@@ -296,11 +312,12 @@ sub run_test
     my ($rc);
     unlink("./test");
 
-    $rc = run ["gcc", "-o", "./test", "test.c"], \$in, \$out, \$err;
+    $rc = run ["gcc", "-o", "./test", "./test.c"], \$in, \$out, \$err;
     if (($err =~ m!Error: no such instruction!) || 
-        ($err =~ m!Error: suffix or operands invalid!) )
+        ($err =~ m!Error: suffix or operands invalid!) ||
+        ($err =~ m!Error: bad register name!) ) 
     {
-        $result->{err} = sprintf("error: cannot compile %s \n", $name); 
+        $result->{err} = sprintf("error: cannot compile %s: %s", $name, $err); 
         return $result;
     }
 
@@ -310,7 +327,7 @@ sub run_test
         $rc = run ["./test"], \$in, \$out, \$err;
         if ($rc == 0)
         {
-            $result->{err} = sprintf("error: cannot run %s: %d \n", $name, $?);
+            $result->{err} = sprintf("error: cannot run %s: %d", $name, $?);
             return $result;
         }
         my ($latency, $throughput);
