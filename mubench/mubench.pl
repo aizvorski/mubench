@@ -17,7 +17,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
 #############################################################################
 
-$VERSION = '0.2.1';
+$VERSION = '0.2.2';
 
 use lib "modules";
 
@@ -40,6 +40,7 @@ $repeats = 3;
 $include = '';
 $output = 'xml';
 $outfile = undef;
+$cflags = '-mmmx -msse -msse2 -msse3 -m3dnow';
 
 $result = GetOptions (
                       "mhz=i"       => \$cpuspeed,
@@ -51,10 +52,13 @@ $result = GetOptions (
                       "include=s"   => \$include,
                       "output=s"    => \$output,
                       "outfile=s"   => \$outfile,
+                      "cflags=s"    => \$cflags,
                       );
 
 if ($accurate) { $repeats = 10; }
-if ($fast) { $repeats = 1; }
+if ($fast) { $repeats = 5; $pairs = 0; }
+
+@cflags = split(/\s+/, $cflags);
 
 @opspecs = ();
 foreach my $l (@instructions)
@@ -129,7 +133,7 @@ if ($include)
     @opspecs = @opspecs_selected;
 }
 
-if ($pairs) { $num_tests = scalar(@opspecs) * scalar(@opspecs); }
+if ($pairs) { $num_tests = scalar(@opspecs) + scalar(@opspecs) * (scalar(@opspecs)-1) / 2; }
 else { $num_tests = scalar(@opspecs); }
 $N = 0;
 
@@ -314,7 +318,7 @@ sub run_test
     my ($rc);
     unlink("./test");
 
-    $rc = run ["gcc", "-o", "./test", "./test.c"], \$in, \$out, \$err;
+    $rc = run ["gcc", @cflags, "-o", "./test", "./test.c"], \$in, \$out, \$err;
     if (($err =~ m!Error: no such instruction!) || 
         ($err =~ m!Error: suffix or operands invalid!) ||
         ($err =~ m!Error: bad register name!) ) 
@@ -401,19 +405,19 @@ sub generate_one_test
     my $clobberlist = '';
     for (my $i = 0; $i < $opt{num_xmm_regs}; $i++)
     {
-        $clobberlist .= '"%xmm'.$i.'", ';
+        $clobberlist .= '"xmm'.$i.'", ';
     }
     for (my $i = 0; $i < 8; $i++)
     {
-        $clobberlist .= '"%mm'.$i.'", ';
+        $clobberlist .= '"mm'.$i.'", ';
     }
     for (my $i = 0; $i < scalar(@regs_32bit); $i++)
     {
-        $clobberlist .= '"%'.$regs_32bit[ $i ].'", ';
+        $clobberlist .= '"'.$regs_32bit[ $i ].'", ';
     }
     for (my $i = 0; $i < scalar(@regs_64bit); $i++)
     {
-        $clobberlist .= '"%'.$regs_64bit[ $i ].'", ';
+        $clobberlist .= '"'.$regs_64bit[ $i ].'", ';
     }
     $clobberlist =~ s!, $!!;
 
@@ -471,6 +475,7 @@ sub generate_one_test
         i++;
 
         asm volatile(
+	".align	64\n"
 ';
 
     for (my $i = 0; $i < $opt{cmds_per_loop}; $i++)
