@@ -53,7 +53,7 @@
 'MOVDDUP xmm, xmm',
 'MOVSHDUP xmm, xmm',
 'MOVSLDUP xmm, xmm',
-'LDDQU xmm, xmm',
+'LDDQU xmm, mem128/mem128u',
 #'FISTTP',
 #'MONITOR',
 #'MWAIT',
@@ -65,7 +65,7 @@
 'MOVD xmm, r32',
 'MOVD r32, xmm',
 'MOVDQA xmm, xmm',
-'MOVDQU xmm, xmm',
+'MOVDQU xmm, xmm/mem128u',
 'MOVDQ2Q mm, xmm',
 'MOVQ2DQ xmm, mm',
 'MOVQ xmm, xmm',
@@ -190,8 +190,8 @@
 'ADDSS xmm, xmm',
 'ANDNPS xmm, xmm',
 'ANDPS xmm, xmm',
-'CMPPS xmm, xmm',
-'CMPSS xmm, xmm',
+#'CMPPS xmm, xmm', #? problem compiling
+#'CMPSS xmm, xmm',
 'COMISS xmm, xmm',
 'CVTPI2PS xmm, mm',
 'CVTPS2PI mm, xmm',
@@ -293,7 +293,7 @@
 'PUNPCKLWD mm, mm',
 'PUNPCKLDQ mm, mm',
 'PXOR mm, mm',
-#'EMMS',
+'EMMS',
 
 #############################################################################
 # Source: http://www.amd.com/us-en/assets/content_type/white_papers_and_tech_docs/25112.PDF
@@ -320,7 +320,7 @@
 'PMULHRW mm, mm',
 #'PREFETCH mem8',
 #'PREFETCHW mem8',
-#'FEMMS',
+'FEMMS',
 
 # 3DNow! Extensions
 'PF2IW mm, mm',
@@ -335,45 +335,47 @@
 
 # Data Transfer Instructions
 'BSWAP r',
-#'CBW',
-#'CDQ',
-#'CDQE',
-#'CMOVA',
-#'CMOVAE',
-#'CMOVB',
-#'CMOVBE',
-#'CMOVC',
+
+'CBW',  # al, ax
+'CDQ',  # eax, edx:eax
+'CDQE', # eax, rax
+#'CQO',  # ?
+'CWD',  # ax, dx:ax
+'CWDE', # ax, eax
+
+'CMOVA r, r',
+'CMOVAE r, r',
+'CMOVB r, r',
+'CMOVBE r, r',
+'CMOVC r, r',
 'CMOVE r, r',
-#'CMOVG',
-#'CMOVGE',
-#'CMOVL',
-#'COMVLE',
-#'CMOVNA',
-#'CMOVNAE',
-#'CMOVNB',
-#'CMOVNBE',
-#'CMOVNC',
+'CMOVG r, r',
+'CMOVGE r, r',
+'CMOVL r, r',
+'COMVLE r, r',
+'CMOVNA r, r',
+'CMOVNAE r, r',
+'CMOVNB r, r',
+'CMOVNBE r, r',
+'CMOVNC r, r',
 'CMOVNE r, r',
-#'CMOVNG',
-#'CMOVNGE',
-#'CMOVNL',
-#'CMOVNLE',
-#'CMOVNO',
-#'CMOVNP',
-#'CMOVNS',
-#'CMOVNZ',
-#'CMOVO',
-#'CMOVP',
-#'CMOVPE',
-#'CMOVPO',
-#'CMOVS',
-#'CMOVZ',
+'CMOVNG r, r',
+'CMOVNGE r, r',
+'CMOVNL r, r',
+'CMOVNLE r, r',
+'CMOVNO r, r',
+'CMOVNP r, r',
+'CMOVNS r, r',
+'CMOVNZ r, r',
+'CMOVO r, r',
+'CMOVP r, r',
+#'CMOVPE r, r', #? problem compiling
+#'CMOVPO r, r',
+'CMOVS r, r',
+'CMOVZ r, r',
+
 'CMPXCHG r, r',
 #'CMPXCHG8B',
-#'CQO',
-#'CQO',
-#'CWD',
-#'CWDE',
 'MOV r, r',
 #'MOVABS',
 'MOVSX r32, r64',
@@ -402,12 +404,13 @@
 'SUB r, r',
 
 # Decimal Arithmetic Instructions
-#'AAA',
-#'AAD',
-#'AAM',
-#'AAS',
-#'DAA',
-#'DAS',
+# note: not available in 64-bit
+'AAA', # ax
+'AAD', # ax
+'AAM', # ax
+'AAS', # ax
+'DAA', # ax
+'DAS', # ax
 
 # Logical Instructions
 'AND r, r',
@@ -434,7 +437,7 @@
 'BTC r, r',
 'BTR r, r',
 'BTS r, r',
-#'SETA',
+#'SETA', # SET* r8
 #'SETAE',
 #'SETB',
 #'SETBE',
@@ -555,19 +558,19 @@
 #'OUTSW',
 
 # Flag Control (EFLAG) Instructions
-#'CLC',
-#'CLD',
-#'CLI',
-#'CMC',
-#'LAHF',
+'CLC',
+'CLD',
+'CLI',
+'CMC',
+'LAHF', # flags, ax
 #'POPF',
 #'POPFL',
 #'PUSHF',
 #'PUSHFL',
-#'SAHF',
-#'STC',
-#'STD',
-#'STI',
+'SAHF', # ax, flags
+'STC',
+'STD',
+'STI',
 
 # Segment Register Instructions
 #'LDS',

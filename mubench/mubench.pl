@@ -73,6 +73,7 @@ foreach my $l (@instructions)
         $opspec =~ m!^(\w+) r, r$! ||
         $opspec =~ m!^(\w+) r$! ||
         $opspec =~ m!^(\w+) r, imm8$! ||
+        $opspec =~ m!^(\w+)$! ||
         0 )
     {
         if ($opspec =~ m!^(\w+) r, r$!)
@@ -319,10 +320,9 @@ sub run_test
     unlink("./test");
 
     $rc = run ["gcc", @cflags, "-o", "./test", "./test.c"], \$in, \$out, \$err;
-    if (($err =~ m!Error: no such instruction!) || 
-        ($err =~ m!Error: suffix or operands invalid!) ||
-        ($err =~ m!Error: bad register name!) ) 
+    if (($err =~ m!Error: !) ) 
     {
+        if ($err =~ m!^(.*\n.*\n)!) { $err = $1; $err =~ s!\n! !g; }
         $result->{err} = sprintf("error: cannot compile %s: %s", $name, $err); 
         return $result;
     }
@@ -571,6 +571,10 @@ sub generate_one_test
         elsif ($opspec eq "$op r32, imm8")
         {
             $code .= '"'.$op.' $'.$imm8.', %%'.$r32_1.'\n"'."\n";
+        }
+        elsif ($opspec eq "$op")
+        {
+            $code .= '"'.$op.'\n"'."\n";
         }
     }
     $code .= '
