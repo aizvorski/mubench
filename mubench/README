@@ -36,7 +36,7 @@ The quick benchmark runs in 5-15 minutes.  The full benchmark (with the --pairs 
 
 Simply run perl mubench.pl with no options.  It will create a file mubench-results-<date>.xml.bz2.  Upload this file using the upload form at http://mubench.sourceforge.org/contribute.html .
 
-If you have a lot of time available, you can run with the --pairs option, which produces a very complete set of timings but takes 6-9 hours to run.  We would love to get a contribution of the results for your processor with the --pairs option.  Thanks ;)
+If you have a lot of time available, you can run with the --pairs option, which produces a very complete set of timings but takes 6-9 hours to run.  We would love to get a contribution of the results for your processor with the --pairs option.  Thanks!
 
 
 == Output ==
@@ -62,3 +62,7 @@ Creates test.c and test in the current working directory.
 
 Tries to read /proc/cpuinfo on startup.
 
+
+== Bugs ==
+
+* mubench <= 0.2.1 did not work with gcc 4.x.x
