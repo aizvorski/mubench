@@ -16,25 +16,27 @@ mubench fully supports all SIMD instruction sets for the x86, including SSSE3, S
 perl mubench.pl [options]
 
 Options:
- --(no-)accurate           runs tests several times (default)
- --mhz=2500                processor speed in MHz (normally autodetected from /proc/cpuinfo, set here if that is wrong, for example if you have SpeedStep or Cool'n'Quiet enabled)
+ --(no-)accurate           runs tests several times (default on)
+ --mhz=2500                processor speed in MHz (default detected from /proc/cpuinfo, set here if that is wrong, for example if you have SpeedStep or Cool'n'Quiet enabled)
  --(no-)64bit              benchmark 64-bit (amd64, emt64, x86-64) instructions (default detected from uname)
  --(no-)32bit              benchmark 32-bit instructions
- --(no-)pairs              benchmark instruction mixes (default, slow; use --no-pairs for a very fast benchmark that runs in minutes)
- --include=add,sub         benchmark only instructions matching the given list of patterns (regular expressions ok)
+ --(no-)pairs              benchmark instruction mixes (default off, extremely slow but provides info on cross-latencies)
+ --include=<pattern>,<pattern2>  benchmark only instructions matching the given list of patterns (regular expressions ok)
  --output=xml|csv|text     select output format
  --outfile=file.xml        output file to save results to (default mubench-results-<date>.xml if xml, standard output otherwise)
+ --gcc=<path to gcc>       which compiler to use (must be gcc or derivative, e.g. kgcc, pgcc) (default gcc in path)
+ --cflags=<compiler flags> which compiler flags to use (default enable all simd instruction sets)
 
 Run this benchmark on an otherwise idle system (or as close as possible to idle: the benchmark will try to compensate for occasional cpu usage).
 
-The full benchmark takes 6-8 hours to comlpete on a x86-64 system, or 2-3 hours on a x86 system (since there are fewer instructions to try).
+The quick benchmark runs in 5-15 minutes.  The full benchmark (with the --pairs option) takes 6-8 hours to comlpete on a x86-64 system, or 2-3 hours on a x86 system (since there are fewer instructions to try).
 
 
 == Contributing results ==
 
 Simply run perl mubench.pl with no options.  It will create a file mubench-results-<date>.xml.bz2.  Upload this file using the upload form at http://mubench.sourceforge.org/contribute.html .
 
-If you would like to contribute but don't have time to run the full benchmark, you may run with the --no-pairs option, which takes only a couple of minutes and produces a limited set of results.
+If you have a lot of time available, you can run with the --pairs option, which produces a very complete set of timings but takes 6-9 hours to run.  We would love to get a contribution of the results for your processor with the --pairs option.  Thanks ;)
 
 
 == Output ==

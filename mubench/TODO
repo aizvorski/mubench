@@ -1,8 +1,6 @@
 - make webpages from output files: summary, and one page per instruction with instruction pairs detail
 - more regular (non-simd) x86 instructions
 - automatic execution unit detection
-- configurable path to gcc and as
-- configurable gcc options
 - configurable path to temp file (test.c)
 - better choice of imm8 constants
 - more commands with mixed operands
@@ -17,3 +15,5 @@ old/done:
 * instruction pair throughput
 * 3dnow requires femms => no
 * one-operand instructions
+* configurable path to gcc and as
+* configurable gcc options

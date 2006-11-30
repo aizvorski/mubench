@@ -33,13 +33,14 @@ $cpuspeed = &getcpuspeed();
 $loops = 100000;
 $have_64bit = 1;
 $have_32bit = 1;
-$pairs = 1;
+$pairs = 0;
 $accurate = 1;
 $fast = 0;
 $repeats = 3;
 $include = '';
 $output = 'xml';
 $outfile = undef;
+$gcc = 'gcc';
 $cflags = '-mmmx -msse -msse2 -msse3 -m3dnow';
 
 $result = GetOptions (
@@ -52,6 +53,7 @@ $result = GetOptions (
                       "include=s"   => \$include,
                       "output=s"    => \$output,
                       "outfile=s"   => \$outfile,
+                      "gcc=s"       => \$gcc,
                       "cflags=s"    => \$cflags,
                       );
 
@@ -277,9 +279,10 @@ if ($output eq 'xml')
     $outfh->printf("\n<cpuinfo>$txt</cpuinfo>\n");
 
     my ($in, $out, $err);
-    run ["gcc", "-v"], \$in, \$out, \$err;
+    run [$gcc, "-v"], \$in, \$out, \$err;
     $outfh->printf("\n<gcc-version>$err</gcc-version>\n");
 
+    # FIXME assumes the assembler in the path is used
     run ["as", "-v"], \$in, \$out, \$err;
     $outfh->printf("\n<as-version>$err</as-version>\n");
 
@@ -319,7 +322,7 @@ sub run_test
     my ($rc);
     unlink("./test");
 
-    $rc = run ["gcc", @cflags, "-o", "./test", "./test.c"], \$in, \$out, \$err;
+    $rc = run [$gcc, @cflags, "-o", "./test", "./test.c"], \$in, \$out, \$err;
     if (($err =~ m!Error: !) ) 
     {
         if ($err =~ m!^(.*\n.*\n)!) { $err = $1; $err =~ s!\n! !g; }
