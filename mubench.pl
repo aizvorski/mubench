@@ -70,57 +70,24 @@ foreach my $l (@instructions)
     $opspec =~ s!xmm/imm8!xmm!;
     $opspec =~ s!mm/imm8!mm!;
 
-    if ($opspec =~ m!^(\w+) xmm, xmm$! ||
-        $opspec =~ m!^(\w+) xmm, xmm, imm8$! ||
-        $opspec =~ m!^(\w+) xmm, xmm, xmm0$! ||
-        $opspec =~ m!^(\w+) mm, mm$! ||
-        $opspec =~ m!^(\w+) mm, mm, imm8$! ||
-        $opspec =~ m!^(\w+) r, r$! ||
-        $opspec =~ m!^(\w+) r$! ||
-        $opspec =~ m!^(\w+) r, imm8$! ||
-        $opspec =~ m!^(\w+)$! ||
-        0 )
+    if ($opspec =~ m!\br\b!)
     {
-        if ($opspec =~ m!^(\w+) r, r$!)
+        if ($have_64bit)
         {
-            my $op = $1;
-            if ($have_64bit)
-            {
-                push(@opspecs, "$op r64, r64");
-            }
-            if ($have_32bit)
-            {
-                push(@opspecs, "$op r32, r32");
-            }
+            my $op = $opspec;
+            $op =~ s!\br\b!r64!g;
+            push(@opspecs, $op);
         }
-        elsif ($opspec =~ m!^(\w+) r$!)
+        if ($have_32bit)
         {
-            my $op = $1;
-            if ($have_64bit)
-            {
-                push(@opspecs, "$op r64");
-            }
-            if ($have_32bit)
-            {
-                push(@opspecs, "$op r32");
-            }
+            my $op = $opspec;
+            $op =~ s!\br\b!r32!g;
+            push(@opspecs, $op);
         }
-        elsif ($opspec =~ m!^(\w+) r, imm8$!)
-        {
-            my $op = $1;
-            if ($have_64bit)
-            {
-                push(@opspecs, "$op r64, imm8");
-            }
-            if ($have_32bit)
-            {
-                push(@opspecs, "$op r32, imm8");
-            }
-        }
-        else
-        {
-            push(@opspecs, $opspec);
-        }
+    }
+    else
+    {
+        push(@opspecs, $opspec);
     }
 }
 
@@ -551,56 +518,21 @@ sub generate_one_test
         }
 
         if ($op =~ m!^(div|idiv|mul|imul)$!) { $r32_2 = 'eax'; $r64_2 = 'rax'; }
-        my $imm8 = 16;
+        my $imm8 = 4;
 
-        if ($opspec eq "$op xmm, xmm")
-        {
-            $code .= '"'.$op.' %%'.$xmm1.', %%'.$xmm2.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op xmm, xmm, imm8")
-        {
-            $code .= '"'.$op.' $'.$imm8.', %%'.$xmm1.', %%'.$xmm2.'\n"'."\n"; # FIXME could use better imm8
-        }
-        elsif ($opspec eq "$op xmm, xmm, xmm0")
-        {
-            $code .= '"'.$op.' %%xmm0, %%'.$xmm1.', %%'.$xmm2.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op mm, mm")
-        {
-            $code .= '"'.$op.' %%'.$mm1.', %%'.$mm2.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op mm, mm, imm8")
-        {
-            $code .= '"'.$op.' $'.$imm8.', %%'.$mm1.', %%'.$mm2.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op r64, r64")
-        {
-            $code .= '"'.$op.' %%'.$r64_1.', %%'.$r64_2.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op r32, r32")
-        {
-            $code .= '"'.$op.' %%'.$r32_1.', %%'.$r32_2.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op r64")
-        {
-            $code .= '"'.$op.' %%'.$r64_1.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op r32")
-        {
-            $code .= '"'.$op.' %%'.$r32_1.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op r64, imm8")
-        {
-            $code .= '"'.$op.' $'.$imm8.', %%'.$r64_1.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op r32, imm8")
-        {
-            $code .= '"'.$op.' $'.$imm8.', %%'.$r32_1.'\n"'."\n";
-        }
-        elsif ($opspec eq "$op")
-        {
-            $code .= '"'.$op.'\n"'."\n";
-        }
+        $opspec =~ /^$op ?(.*)/;
+        $op .= " " . join ", ", reverse split ", ", $1;
+        $op =~ s/\bmm\b/%%$mm1/;
+        $op =~ s/\bmm\b/%%$mm2/;
+        $op =~ s/\bxmm0\b/%%xmm0/;
+        $op =~ s/\bxmm\b/%%$xmm1/;
+        $op =~ s/\bxmm\b/%%$xmm2/;
+        $op =~ s/\br32\b/%%$r32_1/;
+        $op =~ s/\br32\b/%%$r32_2/;
+        $op =~ s/\br64\b/%%$r64_1/;
+        $op =~ s/\br64\b/%%$r64_2/;
+        $op =~ s/\bimm8\b/\$$imm8/;
+        $code .= qq("$op\\n"\n);
     }
     $code .= '
          : 

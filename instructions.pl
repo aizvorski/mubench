@@ -124,7 +124,7 @@
 'MOVDDUP xmm, xmm',
 'MOVSHDUP xmm, xmm',
 'MOVSLDUP xmm, xmm',
-'LDDQU xmm, mem128/mem128u',
+#'LDDQU xmm, mem128/mem128u',
 #'FISTTP',
 #'MONITOR',
 #'MWAIT',
@@ -136,7 +136,7 @@
 'MOVD xmm, r32',
 'MOVD r32, xmm',
 'MOVDQA xmm, xmm',
-'MOVDQU xmm, xmm/mem128u',
+#'MOVDQU xmm, xmm/mem128u',
 'MOVDQ2Q mm, xmm',
 'MOVQ2DQ xmm, mm',
 'MOVQ xmm, xmm',
@@ -150,8 +150,8 @@
 'PADDSW xmm, xmm',
 'PADDUSB xmm, xmm',
 'PADDUSW xmm, xmm',
-'PADDQ xmm,xmm',
-'PSUBQ xmm,xmm',
+'PADDQ xmm, xmm',
+'PSUBQ xmm, xmm',
 'PAND xmm, xmm',
 'PANDN xmm, xmm',
 'PAVGB xmm, xmm',
@@ -261,8 +261,8 @@
 'ADDSS xmm, xmm',
 'ANDNPS xmm, xmm',
 'ANDPS xmm, xmm',
-#'CMPPS xmm, xmm', #? problem compiling
-#'CMPSS xmm, xmm',
+'CMPPS xmm, xmm, imm8',
+'CMPSS xmm, xmm, imm8',
 'COMISS xmm, xmm',
 'CVTPI2PS xmm, mm',
 'CVTPS2PI mm, xmm',
@@ -410,7 +410,7 @@
 'CBW',  # al, ax
 'CDQ',  # eax, edx:eax
 'CDQE', # eax, rax
-#'CQO',  # ?
+'CQO',  # rax, rdx:rax
 'CWD',  # ax, dx:ax
 'CWDE', # ax, eax
 
@@ -449,8 +449,8 @@
 #'CMPXCHG8B',
 'MOV r, r',
 #'MOVABS',
-'MOVSX r32, r64',
-'MOVZX r32, r64',
+'MOVSX r64, r32',
+#'MOVZX r32, r16',
 #'POP',
 #'POPA',
 #'POPAD',
@@ -631,7 +631,7 @@
 # Flag Control (EFLAG) Instructions
 'CLC',
 'CLD',
-'CLI',
+#'CLI',
 'CMC',
 'LAHF', # flags, ax
 #'POPF',
@@ -641,7 +641,7 @@
 'SAHF', # ax, flags
 'STC',
 'STD',
-'STI',
+#'STI',
 
 # Segment Register Instructions
 #'LDS',
@@ -652,7 +652,7 @@
 
 # Miscellaneous Instructions
 #'CPUID',
-'LEA r, mem',
+#'LEA r, mem',
 #'NOP',
 #'UD2',
 #'XLAT',
