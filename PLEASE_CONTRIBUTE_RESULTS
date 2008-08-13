@@ -1,0 +1,29 @@
+Please run this benchmark on your CPU and upload the results following the directions at http://mubench.sourceforge.org/ .
+
+Collected results are available at http://mubench.sourceforge.net/results.html .
+
+Processors of particular interest (ones that I don't have access to):
+
+many Intel Pentium 4 and Xeon variants (Willamette, Prescott, Cedar Mill, Nocona, Irwindale, Dempsey)
+Intel Pentium M
+Intel Pentium III
+Intel Pentium II
+Intel Pentium Pro
+Intel Pentium
+AMD K6
+AMD K5
+Via C7
+VIA C3
+Transmeta Crusoe
+Transmeta Efficeon
+NSC Geode
+NexGen Nx586
+Cyrix MediaGX
+Cyrix M2
+Cyrix M1
+Rise
+SiS SiS55x
+UMC
+Centaur
+80486 and earlier
+

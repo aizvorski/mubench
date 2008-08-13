@@ -1,0 +1,19 @@
+- make webpages from output files: summary, and one page per instruction with instruction pairs detail
+- more regular (non-simd) x86 instructions
+- automatic execution unit detection
+- configurable path to temp file (test.c)
+- better choice of imm8 constants
+- more commands with mixed operands
+- fix one-operand or mixed operand latency
+- memory operands
+- fp math/x87 instructions
+
+old/done:
+* xml output
+* output containing cpuinfo, gcc version, binutils, etc
+* output hash/signature for auto-verification
+* instruction pair throughput
+* 3dnow requires femms => no
+* one-operand instructions
+* configurable path to gcc and as
+* configurable gcc options
