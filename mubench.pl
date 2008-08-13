@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 #############################################################################
 # mubench - low-level x86 instruction benchmark
 # Copyright (C) 2005-2006 Alex Izvorski <aizvorski@gmail.com>
@@ -71,7 +72,9 @@ foreach my $l (@instructions)
 
     if ($opspec =~ m!^(\w+) xmm, xmm$! ||
         $opspec =~ m!^(\w+) xmm, xmm, imm8$! ||
+        $opspec =~ m!^(\w+) xmm, xmm, xmm0$! ||
         $opspec =~ m!^(\w+) mm, mm$! ||
+        $opspec =~ m!^(\w+) mm, mm, imm8$! ||
         $opspec =~ m!^(\w+) r, r$! ||
         $opspec =~ m!^(\w+) r$! ||
         $opspec =~ m!^(\w+) r, imm8$! ||
@@ -463,6 +466,9 @@ sub generate_one_test
         }
     }
 
+    my $reserve_xmm0 = !!grep /xmm0/, @{$opt{ops}};
+    $opt{num_xmm_regs} -= $reserve_xmm0;
+
     $code .= '
          : 
          : 
@@ -500,8 +506,8 @@ sub generate_one_test
         {
             # throughput
             # A*B->A, B*C->B, ...
-            $xmm1 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs});
-            $xmm2 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs});
+            $xmm1 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs} + $reserve_xmm0);
+            $xmm2 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs} + $reserve_xmm0);
             $mm1 = sprintf('mm%d', ($i+1) % 8);
             $mm2 = sprintf('mm%d', ($i  ) % 8);
             $r32_1 = $regs_32bit[ ($i+1) % scalar(@regs_32bit) ];
@@ -513,8 +519,8 @@ sub generate_one_test
         {
             # throughput, type two
             # A*B->A, C*D->C, ...
-            $xmm1 = sprintf('xmm%d', (2*$i+1) % $opt{num_xmm_regs});
-            $xmm2 = sprintf('xmm%d', (2*$i  ) % $opt{num_xmm_regs});
+            $xmm1 = sprintf('xmm%d', (2*$i+1) % $opt{num_xmm_regs} + $reserve_xmm0);
+            $xmm2 = sprintf('xmm%d', (2*$i  ) % $opt{num_xmm_regs} + $reserve_xmm0);
             $mm1 = sprintf('mm%d', (2*$i+1) % 8);
             $mm2 = sprintf('mm%d', (2*$i  ) % 8);
             $r32_1 = $regs_32bit[ (2*$i+1) % scalar(@regs_32bit) ];
@@ -526,14 +532,22 @@ sub generate_one_test
         {
             # latency
             # A*B->B, B*C->C, ...
-            $xmm1 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs});
-            $xmm2 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs});
+            $xmm1 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs} + $reserve_xmm0);
+            $xmm2 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs} + $reserve_xmm0);
             $mm1 = sprintf('mm%d', ($i  ) % 8);
             $mm2 = sprintf('mm%d', ($i+1) % 8);
             $r32_1 = $regs_32bit[ ($i  ) % scalar(@regs_32bit) ];
             $r32_2 = $regs_32bit[ ($i+1) % scalar(@regs_32bit) ];
             $r64_1 = $regs_64bit[ ($i  ) % scalar(@regs_64bit) ];
             $r64_2 = $regs_64bit[ ($i+1) % scalar(@regs_64bit) ];
+            if ($opspec =~ /^$op (r\d+|x?mm)(, imm8)?$/)
+            {
+                #unary requires all the ops to use the same reg
+                $xmm1 = "xmm0";
+                $mm1 = "mm0";
+                $r32_1 = $regs_32bit[0];
+                $r64_1 = $regs_64bit[0];
+            }
         }
 
         if ($op =~ m!^(div|idiv|mul|imul)$!) { $r32_2 = 'eax'; $r64_2 = 'rax'; }
@@ -547,9 +561,17 @@ sub generate_one_test
         {
             $code .= '"'.$op.' $'.$imm8.', %%'.$xmm1.', %%'.$xmm2.'\n"'."\n"; # FIXME could use better imm8
         }
+        elsif ($opspec eq "$op xmm, xmm, xmm0")
+        {
+            $code .= '"'.$op.' %%xmm0, %%'.$xmm1.', %%'.$xmm2.'\n"'."\n";
+        }
         elsif ($opspec eq "$op mm, mm")
         {
             $code .= '"'.$op.' %%'.$mm1.', %%'.$mm2.'\n"'."\n";
+        }
+        elsif ($opspec eq "$op mm, mm, imm8")
+        {
+            $code .= '"'.$op.' $'.$imm8.', %%'.$mm1.', %%'.$mm2.'\n"'."\n";
         }
         elsif ($opspec eq "$op r64, r64")
         {

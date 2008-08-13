@@ -21,7 +21,60 @@
 (
 
 #############################################################################
-# SSSE3 (aka SSE4, Merom New Instructions)
+# SSE4.1 (aka Penryn New Instructions)
+'MPSADBW xmm, xmm, imm8',
+'PHMINPOSUW xmm, xmm',
+'PMULLD xmm, xmm',
+'PMULDQ xmm, xmm',
+'BLENDPS xmm, xmm, imm8',
+'BLENDPD xmm, xmm, imm8',
+'PBLENDW xmm, xmm, imm8',
+'BLENDVPS xmm, xmm, xmm0',
+'BLENDVPD xmm, xmm, xmm0',
+'PBLENDVB xmm, xmm, xmm0',
+'PMAXSB xmm, xmm',
+'PMINSB xmm, xmm',
+'PMAXUW xmm, xmm',
+'PMINUW xmm, xmm',
+'PMAXSD xmm, xmm',
+'PMINSD xmm, xmm',
+'PMAXUD xmm, xmm',
+'PMINUD xmm, xmm',
+'INSERTPS xmm, xmm, imm8',
+'PINSRB xmm, r32, imm8',
+'PINSRD xmm, r32, imm8',
+'PINSRQ xmm, r64, imm8',
+'EXTRACTPS r32, xmm, imm8',
+'PEXTRB r32, xmm, imm8',
+'PEXTRD r32, xmm, imm8',
+'PEXTRQ r64, xmm, imm8',
+'PMOVSXBW xmm, xmm',
+'PMOVZXBW xmm, xmm',
+'PMOVSXBD xmm, xmm',
+'PMOVZXBD xmm, xmm',
+'PMOVSXBQ xmm, xmm',
+'PMOVZXBQ xmm, xmm',
+'PMOVSXWD xmm, xmm',
+'PMOVZXWD xmm, xmm',
+'PMOVSXWQ xmm, xmm',
+'PMOVZXWQ xmm, xmm',
+'PMOVSXDQ xmm, xmm',
+'PMOVZXDQ xmm, xmm',
+'PTEST xmm, xmm',
+'PCMPEQQ xmm, xmm',
+'PACKUSDW xmm, xmm',
+#'MOVNTDQA mem128, xmm',
+
+# SSE4.1 float
+'DPPS xmm, xmm, imm8',
+'DPPD xmm, xmm, imm8',
+'ROUNDPS xmm, xmm, imm8',
+'ROUNDSS xmm, xmm, imm8',
+'ROUNDPD xmm, xmm, imm8',
+'ROUNDSD xmm, xmm, imm8',
+
+#############################################################################
+# SSSE3 (aka Merom New Instructions)
 'PSIGNB xmm, xmm',
 'PSIGNW xmm, xmm',
 'PSIGND xmm, xmm',
@@ -38,6 +91,24 @@
 'PABSB xmm, xmm',
 'PABSW xmm, xmm',
 'PABSD xmm, xmm',
+
+# SSE2 int64
+'PSIGNB mm, mm',
+'PSIGNW mm, mm',
+'PSIGND mm, mm',
+'PSHUFB mm, mm',
+'PMULHRSW mm, mm',
+'PMADDUBSW mm, mm',
+'PHSUBW mm, mm',
+'PHSUBSW mm, mm',
+'PHSUBD mm, mm',
+'PHADDW mm, mm',
+'PHADDSW mm, mm',
+'PHADDD mm, mm',
+'PALIGNR mm, mm, imm8',
+'PABSB mm, mm',
+'PABSW mm, mm',
+'PABSD mm, mm',
 
 #############################################################################
 # Source: http://www.intel.com/design/pentium4/manuals/index_new.htm
@@ -352,7 +423,7 @@
 'CMOVG r, r',
 'CMOVGE r, r',
 'CMOVL r, r',
-'COMVLE r, r',
+'CMOVLE r, r',
 'CMOVNA r, r',
 'CMOVNAE r, r',
 'CMOVNB r, r',
@@ -398,8 +469,8 @@
 'IDIV r, r', # from dx:ax into dx and ax
 'IMUL r, r', # from ax into dx:ax
 'INC r',
-'MUL r, r',  # from ax into dx:ax
-'NEG r, r',
+'MUL r',  # from ax into dx:ax
+'NEG r',
 'SBB r, r',
 'SUB r, r',
 
