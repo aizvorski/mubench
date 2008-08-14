@@ -465,8 +465,8 @@
 'ADD r, r',
 'CMP r, r',
 'DEC r',
-'DIV r, r',  # from dx:ax into dx and ax
-'IDIV r, r', # from dx:ax into dx and ax
+'DIV r',  # from dx:ax into dx and ax
+'IDIV r', # from dx:ax into dx and ax
 'IMUL r, r', # from ax into dx:ax
 'INC r',
 'MUL r',  # from ax into dx:ax

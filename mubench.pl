@@ -454,6 +454,11 @@ sub generate_one_test
 	".align	64\n"
 ';
 
+    if("@{$opt{ops}}" =~ /div\b/) {
+        $code .= qq("mov \$1, %%eax\\n"\n);
+        $code .= qq("xor %%edx, %%edx\\n"\n);
+    }
+
     for (my $i = 0; $i < $opt{cmds_per_loop}; $i++)
     {
         my $opspec = $opt{ops}->[ $i % scalar(@{ $opt{ops} }) ];
@@ -469,6 +474,8 @@ sub generate_one_test
         my ($mm1, $mm2);
         my ($r32_1, $r32_2);
         my ($r64_1, $r64_2);
+        my $imm8 = 4;
+
         if ($opt{reg_use_pattern} eq 'throughput')
         {
             # throughput
@@ -515,10 +522,19 @@ sub generate_one_test
                 $r32_1 = $regs_32bit[0];
                 $r64_1 = $regs_64bit[0];
             }
+            if ($opspec =~ /^$op( mm, xmm| xmm, mm| r\d*, x?mm| x?mm, r\d*|$)/) {
+                next;
+            }
         }
 
-        if ($op =~ m!^(div|idiv|mul|imul)$!) { $r32_2 = 'eax'; $r64_2 = 'rax'; }
-        my $imm8 = 4;
+        if ($op =~ /div\b/) {
+            if ($opt{reg_use_pattern} =~ /throughput/) {
+                $code .= qq("mov \$1, %%eax\\n"\n);
+                $code .= qq("xor %%edx, %%edx\\n"\n);
+            }
+            $r32_1 = "eax";
+            $r64_1 = "rax";
+        }
 
         $opspec =~ /^$op ?(.*)/;
         $op .= " " . join ", ", reverse split ", ", $1;
