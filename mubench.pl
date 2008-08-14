@@ -439,7 +439,7 @@ sub generate_one_test
 	".align	64\n"
 ';
 
-    if("@{$opt{ops}}" =~ /div\b/) {
+    if("@{$opt{ops}}" =~ m!div\b!) {
         $code .= qq("mov \$1, %%eax\\n"\n);
         $code .= qq("xor %%edx, %%edx\\n"\n);
     }
@@ -499,7 +499,7 @@ sub generate_one_test
             $r32_2 = $regs_32bit[ ($i+1) % scalar(@regs_32bit) ];
             $r64_1 = $regs_64bit[ ($i  ) % scalar(@regs_64bit) ];
             $r64_2 = $regs_64bit[ ($i+1) % scalar(@regs_64bit) ];
-            if ($opspec =~ /^$op (r\d+|x?mm)(, imm8)?$/)
+            if ($opspec =~ m!^$op (r\d+|x?mm)(, imm8)?$!)
             {
                 #unary requires all the ops to use the same reg
                 $xmm1 = "xmm0";
@@ -507,13 +507,13 @@ sub generate_one_test
                 $r32_1 = $regs_32bit[0];
                 $r64_1 = $regs_64bit[0];
             }
-            if ($opspec =~ /^$op( mm, xmm| xmm, mm| r\d*, x?mm| x?mm, r\d*|$)/) {
+            if ($opspec =~ m!^$op( mm, xmm| xmm, mm| r\d*, x?mm| x?mm, r\d*|$)!) {
                 next;
             }
         }
 
-        if ($op =~ /div\b/) {
-            if ($opt{reg_use_pattern} =~ /throughput/) {
+        if ($op =~ m!div\b!) {
+            if ($opt{reg_use_pattern} =~ m!throughput!) {
                 $code .= qq("mov \$1, %%eax\\n"\n);
                 $code .= qq("xor %%edx, %%edx\\n"\n);
             }
@@ -521,18 +521,18 @@ sub generate_one_test
             $r64_1 = "rax";
         }
 
-        $opspec =~ /^$op ?(.*)/;
+        $opspec =~ m!^$op ?(.*)!;
         $op .= " " . join ", ", reverse split ", ", $1;
-        $op =~ s/\bmm\b/%%$mm1/;
-        $op =~ s/\bmm\b/%%$mm2/;
-        $op =~ s/\bxmm0\b/%%xmm0/;
-        $op =~ s/\bxmm\b/%%$xmm1/;
-        $op =~ s/\bxmm\b/%%$xmm2/;
-        $op =~ s/\br32\b/%%$r32_1/;
-        $op =~ s/\br32\b/%%$r32_2/;
-        $op =~ s/\br64\b/%%$r64_1/;
-        $op =~ s/\br64\b/%%$r64_2/;
-        $op =~ s/\bimm8\b/\$$imm8/;
+        $op =~ s!\bmm\b!%%$mm1!;
+        $op =~ s!\bmm\b!%%$mm2!;
+        $op =~ s!\bxmm0\b!%%xmm0!;
+        $op =~ s!\bxmm\b!%%$xmm1!;
+        $op =~ s!\bxmm\b!%%$xmm2!;
+        $op =~ s!\br32\b!%%$r32_1!;
+        $op =~ s!\br32\b!%%$r32_2!;
+        $op =~ s!\br64\b!%%$r64_1!;
+        $op =~ s!\br64\b!%%$r64_2!;
+        $op =~ s!\bimm8\b!\$$imm8!;
         $code .= qq("$op\\n"\n);
     }
     $code .= "::: $clobberlist);\n";
