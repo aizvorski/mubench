@@ -417,31 +417,16 @@ sub generate_one_test
         asm volatile(
 ';
 
+    my %pxor = (integer=>"pxor", float=>"xorps", double=>"xorpd");
     for (my $i = 0; $i < $opt{num_xmm_regs}; $i++)
     {
-        if ($opt{init_xmm_regs} eq 'integer')
-        {
-            $code .= '"pxor %%xmm'.$i.', %%xmm'.$i.' \n"'. "\n";
-        }
-        elsif ($opt{init_xmm_regs} eq 'float')
-        {
-            $code .= '"xorps %%xmm'.$i.', %%xmm'.$i.' \n"'. "\n";
-        }
-        elsif ($opt{init_xmm_regs} eq 'double')
-        {
-            $code .= '"xorpd %%xmm'.$i.', %%xmm'.$i.' \n"'. "\n";
-        }
+        $code .= qq("$pxor{$opt{init_xmm_regs}} %%xmm$i, %%xmm$i \\n"\n);
     }
 
     my $reserve_xmm0 = !!grep /xmm0/, @{$opt{ops}};
     $opt{num_xmm_regs} -= $reserve_xmm0;
 
-    $code .= '
-         : 
-         : 
-         : '.$clobberlist.'
-        );
-';
+    $code .= "::: $clobberlist);\n";
 
 # write main loop
     $code .= '
@@ -550,12 +535,7 @@ sub generate_one_test
         $op =~ s/\bimm8\b/\$$imm8/;
         $code .= qq("$op\\n"\n);
     }
-    $code .= '
-         : 
-         : 
-         : '.$clobberlist.'
-        );
-        ';
+    $code .= "::: $clobberlist);\n";
 
 # calculate results
     $code .= '
