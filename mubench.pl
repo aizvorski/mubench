@@ -375,24 +375,10 @@ sub generate_one_test
     my @regs_32bit = qw(eax ebx ecx edx esi edi); #  ebp esp
     my @regs_64bit = qw(rax rbx rcx rdx rsi rdi r8 r9 r10 r11 r12 r13 r14 r15);
 
-    my $clobberlist = '';
-    for (my $i = 0; $i < $opt{num_xmm_regs}; $i++)
-    {
-        $clobberlist .= '"xmm'.$i.'", ';
-    }
-    for (my $i = 0; $i < 8; $i++)
-    {
-        $clobberlist .= '"mm'.$i.'", ';
-    }
-    for (my $i = 0; $i < scalar(@regs_32bit); $i++)
-    {
-        $clobberlist .= '"'.$regs_32bit[ $i ].'", ';
-    }
-    for (my $i = 0; $i < scalar(@regs_64bit); $i++)
-    {
-        $clobberlist .= '"'.$regs_64bit[ $i ].'", ';
-    }
-    $clobberlist =~ s!, $!!;
+    my $clobberlist = join ", ", map qq("$_"),
+        map("xmm$_", 0..$opt{num_xmm_regs}-1),
+        map("mm$_",  0..7),
+        $have_64bit ? @regs_64bit : @regs_32bit;
 
     # FIXME
     if ($opt{ops}->[0] =~ m!ps !) { $opt{init_xmm_regs} = 'float'; }
@@ -418,9 +404,13 @@ sub generate_one_test
 ';
 
     my %pxor = (integer=>"pxor", float=>"xorps", double=>"xorpd");
-    for (my $i = 0; $i < $opt{num_xmm_regs}; $i++)
+    foreach my $i (0 .. $opt{num_xmm_regs}-1)
     {
         $code .= qq("$pxor{$opt{init_xmm_regs}} %%xmm$i, %%xmm$i \\n"\n);
+    }
+    foreach my $i (0 .. 7)
+    {
+        $code .= qq("pxor %%mm$i, %%mm$i \\n"\n);
     }
 
     my $reserve_xmm0 = !!grep /xmm0/, @{$opt{ops}};
