@@ -476,12 +476,12 @@
 
 # Decimal Arithmetic Instructions
 # note: not available in 64-bit
-'AAA', # ax
-'AAD', # ax
-'AAM', # ax
-'AAS', # ax
-'DAA', # ax
-'DAS', # ax
+#'AAA', # ax
+#'AAD', # ax
+#'AAM', # ax
+#'AAS', # ax
+#'DAA', # ax
+#'DAS', # ax
 
 # Logical Instructions
 'AND r, r',
