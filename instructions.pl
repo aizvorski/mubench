@@ -665,4 +665,25 @@
 
  );
 
+# instructions whose individual latencies can't be measured, but can be measured in pairs
+@instruction_paired_opposites = map lc,
+(
+'MOVD xmm, r32',         'MOVD r32, xmm',
+'MOVD mm, r32',          'MOVD r32, mm',
+'MOVDQ2Q mm, xmm',       'MOVQ2DQ xmm, mm',
+'PEXTRW r32, xmm, imm8', 'PINSRW xmm, r32, imm8',
+'PEXTRW r32, mm, imm8',  'PINSRW mm, r32, imm8',
+'PEXTRB r32, xmm, imm8', 'PINSRB xmm, r32, imm8',
+'PEXTRD r32, xmm, imm8', 'PINSRD xmm, r32, imm8',
+'PEXTRQ r64, xmm, imm8', 'PINSRQ xmm, r64, imm8',
+'CVTPD2PI mm, xmm',      'CVTPI2PD xmm, mm',
+'CVTSD2SI r32, xmm',     'CVTSI2SD xmm, r32',
+'CVTPS2PI mm, xmm',      'CVTPI2PS xmm, mm',
+'CVTSS2SI r32, xmm',     'CVTSI2SS xmm, r32',
+'CVTTPD2PI mm, xmm',     'CVTPI2PD xmm, mm',
+'CVTTSD2SI r32, xmm',    'CVTSI2SD xmm, r32',
+'CVTTPS2PI mm, xmm',     'CVTPI2PS xmm, mm',
+'CVTTSS2SI r32, xmm',    'CVTSI2SS xmm, r32',
+);
+
 1;

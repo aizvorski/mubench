@@ -437,12 +437,8 @@ sub generate_one_test
     for (my $i = 0; $i < $opt{cmds_per_loop}; $i++)
     {
         my $opspec = $opt{ops}->[ $i % scalar(@{ $opt{ops} }) ];
-        my $op;
-        if ($opspec =~ m!^(\w+)!)
-        {
-            $op = $1;
-        }
-        else { die "could not parse opspec"; }
+        my ($op) = split / /, $opspec;
+        $op =~ m!^\w+$! or die "could not parse opspec";
         
         # FIXME don't need all types of registers for every op
         my ($xmm1, $xmm2);
@@ -489,16 +485,35 @@ sub generate_one_test
             $r32_2 = $regs_32bit[ ($i+1) % scalar(@regs_32bit) ];
             $r64_1 = $regs_64bit[ ($i  ) % scalar(@regs_64bit) ];
             $r64_2 = $regs_64bit[ ($i+1) % scalar(@regs_64bit) ];
-            if ($opspec =~ m!^$op (r\d+|x?mm)(, imm8)?$!)
-            {
-                #unary requires all the ops to use the same reg
-                $xmm1 = "xmm0";
-                $mm1 = "mm0";
+
+            my $unary = ($opspec =~ m!^$op (r\d+|x?mm)(, imm8)?$!);
+            my $paired = ($opspec =~ m!^$op( mm, xmm| xmm, mm| r\d*, x?mm| x?mm, r\d*|$)!);
+            if ($unary || $paired) {
+                $xmm1 = "xmm1";
+                $xmm2 = "xmm1";
+                $mm1 = "mm1";
+                $mm2 = "mm1";
                 $r32_1 = $regs_32bit[0];
+                $r32_2 = $regs_32bit[0];
                 $r64_1 = $regs_64bit[0];
+                $r64_2 = $regs_64bit[0];
+            } elsif($opspec =~ m!r64, r32!) {
+                ($r64_1 = $r32_2) =~ s!e!r!;
             }
-            if ($opspec =~ m!^$op( mm, xmm| xmm, mm| r\d*, x?mm| x?mm, r\d*|$)!) {
-                next;
+            if ($paired) {
+                my $j = 0;
+                foreach (@instruction_paired_opposites) {
+                    if ($opspec eq $_) {
+                        if ($i&1) {
+                            $opspec = $instruction_paired_opposites[$j^1];
+                            ($op) = split / /, $opspec;
+                        }
+                        goto found_opposite;
+                    }
+                    $j++;
+                }
+                last;
+                found_opposite:
             }
         }
 
@@ -511,7 +526,7 @@ sub generate_one_test
             $r64_1 = "rax";
         }
 
-        $opspec =~ m!^$op ?(.*)!;
+        $opspec =~ m!^$op ?(.*)! or die;
         $op .= " " . join ", ", reverse split ", ", $1;
         $op =~ s!\bmm\b!%%$mm1!;
         $op =~ s!\bmm\b!%%$mm2!;
