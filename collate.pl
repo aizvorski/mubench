@@ -12,6 +12,7 @@ foreach $f (@ARGV) {
     while(<FH>) {
         m#<op>([^<>]+)</op># or next;
         my $op = $1;
+        next if $op =~ /^cmov[^z]/;
         push @order, $op;
         if(m#<l>(\d+\.\d+)</l><t>(\d+\.\d+)</t>#) {
             $time{$op}[$cpun] = sprintf "%.1f/%.1f", round($1), round($2);
