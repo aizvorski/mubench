@@ -63,33 +63,16 @@ if ($fast) { $repeats = 5; $pairs = 0; }
 
 @cflags = split(/\s+/, $cflags);
 
-@opspecs = ();
-foreach my $l (@instructions)
-{
-    my $opspec = lc($l);
-    $opspec =~ s!xmm/imm8!xmm!;
-    $opspec =~ s!mm/imm8!mm!;
-
-    if ($opspec =~ m!\br\b!)
-    {
-        if ($have_64bit)
-        {
-            my $op = $opspec;
-            $op =~ s!\br\b!r64!g;
-            push(@opspecs, $op);
-        }
-        if ($have_32bit)
-        {
-            my $op = $opspec;
-            $op =~ s!\br\b!r32!g;
-            push(@opspecs, $op);
-        }
-    }
-    else
-    {
-        push(@opspecs, $opspec);
-    }
-}
+# expand wildcards
+@opspecs = map {
+    lc
+} map {
+    m!^(.*?)(x?mm)/(imm8)(.*)! ? ("$1$2$4", "$1$3$4") : $_;
+} map {
+    (my $op64 = $_) =~ s!\br\b!r64!g;
+    (my $op32 = $_) =~ s!\br\b!r32!g;
+    ($op64 eq $op32) ? $_ : (($op64) x $have_64bit, ($op32) x $have_32bit);
+} @instructions;
 
 # filter instructions based on include patterns
 my @include_patterns = split(/,/, $include);
