@@ -75,18 +75,10 @@ if ($fast) { $repeats = 5; $pairs = 0; }
 } @instructions;
 
 # filter instructions based on include patterns
-my @include_patterns = split(/,/, $include);
 if ($include)
 {
-    my @opspecs_selected = ();
-    foreach my $o (@opspecs)
-    {
-        foreach my $p (@include_patterns)
-        {
-            if ($o =~ m!$p!) { push(@opspecs_selected, $o); last; }
-        }
-    }
-    @opspecs = @opspecs_selected;
+    my @include_patterns = split(/,/, $include);
+    @opspecs = grep { my $op = $_; grep { $op =~ $_ } @include_patterns } @opspecs;
 }
 
 if ($pairs) { $num_tests = scalar(@opspecs) + scalar(@opspecs) * (scalar(@opspecs)-1) / 2; }
