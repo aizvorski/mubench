@@ -422,31 +422,18 @@ sub generate_one_test
         my ($r64_1, $r64_2);
         my $imm8 = 4;
 
-        if ($opt{reg_use_pattern} eq 'throughput')
+        if ($opt{reg_use_pattern} =~ 'throughput')
         {
             # throughput
-            # A*B->A, B*C->B, ...
-            $xmm1 = sprintf('xmm%d', ($i+1) % $opt{num_xmm_regs} + $reserve_xmm0);
-            $xmm2 = sprintf('xmm%d', ($i  ) % $opt{num_xmm_regs} + $reserve_xmm0);
-            $mm1 = sprintf('mm%d', ($i+1) % 8);
-            $mm2 = sprintf('mm%d', ($i  ) % 8);
-            $r32_1 = $regs_32bit[ ($i+1) % scalar(@regs_32bit) ];
-            $r32_2 = $regs_32bit[ ($i  ) % scalar(@regs_32bit) ];
-            $r64_1 = $regs_64bit[ ($i+1) % scalar(@regs_64bit) ];
-            $r64_2 = $regs_64bit[ ($i  ) % scalar(@regs_64bit) ];
-        }
-        if ($opt{reg_use_pattern} eq 'throughput2')
-        {
-            # throughput, type two
-            # A*B->A, C*D->C, ...
-            $xmm1 = sprintf('xmm%d', (2*$i+1) % $opt{num_xmm_regs} + $reserve_xmm0);
-            $xmm2 = sprintf('xmm%d', (2*$i  ) % $opt{num_xmm_regs} + $reserve_xmm0);
-            $mm1 = sprintf('mm%d', (2*$i+1) % 8);
-            $mm2 = sprintf('mm%d', (2*$i  ) % 8);
-            $r32_1 = $regs_32bit[ (2*$i+1) % scalar(@regs_32bit) ];
-            $r32_2 = $regs_32bit[ (2*$i  ) % scalar(@regs_32bit) ];
-            $r64_1 = $regs_64bit[ (2*$i+1) % scalar(@regs_64bit) ];
-            $r64_2 = $regs_64bit[ (2*$i  ) % scalar(@regs_64bit) ];
+            # A*A->A, B*B->B, ...
+            $xmm1  = sprintf('xmm%d', $i % $opt{num_xmm_regs} + $reserve_xmm0);
+            $mm1   = sprintf('mm%d', $i % 8);
+            $r32_1 = $regs_32bit[ $i % scalar(@regs_32bit) ];
+            $r64_1 = $regs_64bit[ $i % scalar(@regs_64bit) ];
+            $xmm2  = $xmm1;
+            $mm2   = $mm1;
+            $r32_2 = $r32_1;
+            $r64_2 = $r64_1;
         }
         if ($opt{reg_use_pattern} eq 'latency')
         {
