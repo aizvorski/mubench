@@ -356,8 +356,8 @@ sub generate_one_test
         $have_64bit ? @regs_64bit : @regs_32bit;
 
     # FIXME
-    if ($opt{ops}->[0] =~ m!ps !) { $opt{init_xmm_regs} = 'float'; }
-    elsif ($opt{ops}->[0] =~ m!pd !) { $opt{init_xmm_regs} = 'double'; }
+    if ($opt{ops}->[0] =~ m![ps]s !) { $opt{init_xmm_regs} = 'float'; }
+    elsif ($opt{ops}->[0] =~ m![ps]d !) { $opt{init_xmm_regs} = 'double'; }
     else { $opt{init_xmm_regs} = 'integer'; }
 
 # init timers
