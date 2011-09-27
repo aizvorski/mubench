@@ -494,7 +494,7 @@ sub generate_one_test
         $op =~ s!\bmm\b!%%$mm2!;
         $op =~ s!\bxmm0\b!%%xmm0!;
         $op =~ s!\bxmm\b!%%$xmm1!;
-        $op =~ s!\bxmm\b!%%$xmm2!;
+        $op =~ s!\bxmm\b!%%$xmm2!g;
         $op =~ s!\br32\b!%%$r32_1!;
         $op =~ s!\br32\b!%%$r32_2!;
         $op =~ s!\br64\b!%%$r64_1!;
